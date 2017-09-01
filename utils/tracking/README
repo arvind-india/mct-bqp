@@ -1,0 +1,11 @@
+This is the Frank-Wolfe SWAP optimization used in my crowd tracking framework.
+This code requires CPLEX to be installed on your machine as it uses CPLEX to solve the linear programing at every iteration of the FrankWolfe.
+Part of the code is borrowd from Joulin et. al, video localizatoin paper (eccv14). If you use this code please cite the following:
+
+
+@inproceedings{JouTangFeiECCV14,
+  title     = {Binary Quadratic Programing for Online Tracking of Hundreds of People in Extremely Crowded Scenes},
+  author    = {Afshin Dehghan and Mubarak Shah},
+  year      = {2016},
+  booktitle = {ArXiv},
+}
