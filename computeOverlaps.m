@@ -1,7 +1,9 @@
 function homoplanes = computeOverlap(cameraListImages, homographies, invhomographies)
-    setCaptureParams;
-    setCalibrationVars;
+    setCaptureParams_campus2;
+    setDetectionParams_campus2;
 
+    figure
+    hold on
     %Alameda
     inplanes{1} = [494 545; 426 687; 602 681; 852 590; 631 539];
     %Central
@@ -15,4 +17,3 @@ function homoplanes = computeOverlap(cameraListImages, homographies, invhomograp
         drawPoly(homoplanes{i},colors{i},0.5,false);
         scatter(homoplanes{i}(:,1),homoplanes{i}(:,2),'MarkerFaceColor',rgb(colors{i}));
     end
-    

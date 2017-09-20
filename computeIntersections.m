@@ -1,9 +1,9 @@
-function computeIntersections(homoplanes)
+function pixelplane_overlap = computeintersect(homoplanes)
 
-	[xi,yi] = polyxpoly(homoplanes{1}(:,1),homoplanes{1}(:,2),homoplanes{2}(:,1),homoplanes{2}(:,2));
-	intersections = horzcat(xi,yi);
-	if ~isempty(intersections)
-	    scatter(intersections(:,1),intersections(:,2),'MarkerFaceColor',rgb('Black'));
+	[xi,yi] = intersections(homoplanes{1}(:,1),homoplanes{1}(:,2),homoplanes{2}(:,1),homoplanes{2}(:,2));
+	intersect = horzcat(xi,yi);
+	if ~isempty(intersect)
+	    scatter(intersect(:,1),intersect(:,2),'MarkerFaceColor',rgb('Black'));
 	    edges_i = {};
 	    edges_j = {};
 	    for li = 1:size(homoplanes{1},1)
@@ -28,16 +28,18 @@ function computeIntersections(homoplanes)
 	    mmat = cell2mat(minside_points);
 
 	    if ~isempty(mmat) && ~isempty(kmat)
-	        region = vertcat(kmat(:,2:3),mmat(:,2:3),intersections(:,1:2));
+	        region = vertcat(kmat(:,2:3),mmat(:,2:3),intersect(:,1:2));
 	    elseif isempty(mmat)
-	        region = vertcat(kmat(:,2:3),intersections(:,1:2));
+	        region = vertcat(kmat(:,2:3),intersect(:,1:2));
 	    elseif isempty(kmat)
-	        region = vertcat(mmat(:,2:3),intersections(:,1:2));
+	        region = vertcat(mmat(:,2:3),intersect(:,1:2));
 	    else
-	        region = intersections(:,1:2);
+	        region = intersect(:,1:2);
 	    end
 
 	    new_region = [region ; region(1,:)];
 	    drawPoly(new_region,'Black',1.5,false)
-	    pixelplane_overlap = homographyCampusTransform(intersections,invhomographies,0);
+	    pixelplane_overlap = homographyCampusTransform(intersect,invhomographies,0);
+	else
+		pixelplane_overlap = 0;
 	end

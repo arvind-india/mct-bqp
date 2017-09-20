@@ -1,5 +1,5 @@
-function plotTrajectoriesCameraSpace(cameraListImages,allDetections)
-    setCaptureParams
+function plotDetectionsCameraSpace(cameraListImages,allDetections)
+    setCaptureParams_campus2;
     figure
     for id=1:2
         subplot(2,1,id);

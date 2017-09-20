@@ -1,7 +1,15 @@
 function allDetections = CNNdetect(cameraListImages,sample_size)
-    setCalibrationVars
-    setCaptureParams
-    [SVM detector rcnn_model cl2 PersonW PersonB] = loadCNN(LDCF_cascThr,LDCF_cascCal,LDCF_rescale);
+    % Given a list of images and a sample size
+    % Inputs
+    %  allFG_time: Get all frames with their respective ground truth
+
+    % Output
+    %  allDetections: all detections from the CNN
+    setDetectionParams_campus2;
+    setCaptureParams_campus2;
+
+    %==========================================================
+    [SVM detector rcnn_model cl2 PersonW PersonB] = loadCNN(LDCF_cascThr,LDCF_cascCal,LDCF_rescale, use_GPU);
 
     %==========================================================
     %Just for now, working with this
@@ -57,3 +65,23 @@ function allDetections = CNNdetect(cameraListImages,sample_size)
             end
         end
     end
+end
+
+function [SVM detector rcnn_model cl2 PersonW PersonB] = loadCNN(LDCF_cascThr,LDCF_cascCal,LDCF_rescale)
+    % load and adjust the LDCF detector
+    % See toolbox/detector/acfModify and acfDetect for more info
+    load('toolbox/detector/models/LdcfCaltechDetector.mat');
+    pModify = struct('cascThr',LDCF_cascThr,'cascCal',LDCF_cascCal,'rescale',LDCF_rescale); %stride not included yet
+    detector = acfModify(detector,pModify);
+
+    % load the trained SVM
+    SVM = load('data/rcnn_models/DeepPed/SVM_finetuned_alexnet.mat');
+    PersonW = SVM.W; %Feature weights for scoring
+    PersonB = SVM.b; %Constant scoring factor
+
+    % load the trained svm of level 2
+    cl2 = load('data/rcnn_models/DeepPed/SVM_level2.mat');
+
+    %load the finetuned AlexNet
+    rcnn_model = rcnn_load_model('data/rcnn_models/DeepPed/finetuned_alexNet.mat', use_GPU); %0 is CPU, 1 is GPU, the file is the model file
+end
