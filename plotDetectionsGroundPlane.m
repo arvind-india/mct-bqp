@@ -1,5 +1,5 @@
-function plotTrajectoriesGroundPlane(cameraListImages,allDetections,homographies)
-    setCaptureParams
+function plotDetectionsGroundPlane(cameraListImages,allDetections,homographies)
+    setCaptureParams_campus2;
     for id=1:2
         %subimage(imread(cameraListImages{id}{1}));
         for f=1:size(allDetections{id},1)
@@ -16,7 +16,7 @@ function plotTrajectoriesGroundPlane(cameraListImages,allDetections,homographies
                 new_pts = [new_pts(1)./new_pts(3) new_pts(2)./new_pts(3)];
                 transfpos(i,:) = new_pts;
             end
-            
+
             scatter(transfpos(:,1),transfpos(:,2),10,'filled','MarkerFaceColor','black');
         end
     end

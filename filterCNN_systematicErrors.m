@@ -1,6 +1,7 @@
-function allDetections = parseAndLoadDetections(allDetections)
-    setCaptureParams
-    setCalibrationVars
+function allDetections = filterCNN_systematicErrors(allDetections)
+    setCaptureParams_campus2;
+    setDetectionParams_campus2;
+
     allDetections = {};
     %Load the detections file
     for id=1:2

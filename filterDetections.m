@@ -1,5 +1,7 @@
 function allDetections = filterDetections(cameraListImages,allDetections,homographies)
-    setCaptureParams
+
+    setCaptureParams_campus2;
+
     for id=1:2
         %subimage(imread(cameraListImages{id}{1}));
         for f=1:size(allDetections{id},1)
@@ -17,9 +19,7 @@ function allDetections = filterDetections(cameraListImages,allDetections,homogra
                 transfpos(i,:) = new_pts;
 
                 % Check if it's inside the region
-                
-            end
-            
 
+            end
         end
     end

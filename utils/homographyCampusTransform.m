@@ -1,7 +1,7 @@
 function homoplanes = homographyCampusTransform(inplanes,homographies,opt)
 
     homoplanes = {};
-    % Homography to use for the transformation of camera regions from the camera plane to the ground plane 
+    % Homography to use for the transformation of camera regions from the camera plane to the ground plane
     if opt == 1
         for i=1:2 % For the two cameras
             homoplanes{i} = zeros(5,2);
@@ -10,7 +10,7 @@ function homoplanes = homographyCampusTransform(inplanes,homographies,opt)
             	u = pts(1);
             	v = pts(2);
             	o = 1;
-            	uvo = [u v 1]
+            	uvo = [u v 1];
             	new_pts = uvo*homographies{i};
 
             	new_pts = [new_pts(1)./new_pts(3) new_pts(2)./new_pts(3)];
