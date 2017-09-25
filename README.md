@@ -5,17 +5,20 @@
 1. Download + Install [Matlab 2016/2017](https://www.mathworks.com/downloads/)
 2. Download + Install [RCNN](https://github.com/rbgirshick/rcnn)
 3. Download + Install [DeepPed](https://github.com/DenisTome/DeepPed) in the rcnn directory
-4. Download + Install [IlogCPLEX](https://ibm.onthehub.com/ sign up for an academic license and download ILOG CPLEX) in a directory of your choosing, do not forget to change that directory in settings/setTrackerParams.m
+4. Download + Install [IlogCPLEX](https://ibm.onthehub.com/WebStore/OfferingDetails.aspx?o=9b4eadea-9776-e611-9421-b8ca3a5db7a1) in a directory of your choosing, do not forget to change that directory in settings/setTrackerParams.m
 5. `cd rcnn/DeepPed/`
 6. `git clone https://github.com/pedro-abreu/campus2_code`
 7. `cd rcnn`
-8. `sed -i '$ a addpath(genpath('DeepPed/campus2_code'));path(path,genpath('DeepPed/campus2_code/utils'));path(path,genpath('DeepPed/campus2_code/constraints'));' startup.m`
-9. Run the code from the rcnn folder
+8. `sed -i '$ a addpath(genpath('DeepPed/campus2_code'));' startup.m`
+9.  Choose to run mct
+10. Run the code from the rcnn folder
+11. (Optional) Some utility functions from the [Dollar toolbox](https://github.com/pdollar/toolbox) are very useful for handling some of the data formats.
 
+*NOTE*: All data provided in the hda_data and campus2_data are not the actual datasets but results of the detections, which are useful to test the trackers. For the actual datasets see below.
 
 ### Datasets used and quick start guide
 
-* To download the *campus_2 dataset*, contact (catarina barata)
+* To download the *campus_2 dataset*, contact (acfbarata88@gmail.com)
 
 * To download the *HDA+ dataset*, contact (alex@isr.ist.utl.pt)
 
@@ -47,7 +50,7 @@ For the sake of completeness a short instalation guide to setup RCNN and DeepPed
 * In `caffe-0.999-master` take a look and edit `Makefile.config` details. Be specially careful where you point caffe to.
 
 * Then follow the steps (if you get key=-2 at the end it means everything was installed correctly)
-
+```
 	cd CAMPUS_II_PEDESTRIAN_TRACKING/software
 	cd caffe-0.999-master
 	sudo make clean
@@ -62,33 +65,34 @@ For the sake of completeness a short instalation guide to setup RCNN and DeepPed
 	sudo ./data/fetch_models.sh
 	sudo ./data/fetch_selective_search_data.sh
 	sudo matlab
-	>> rcnn_build()
-	>> key = caffe('get_init_key')
-
+	>>rcnn_build()
+	>>key = caffe('get_init_key')
+```
 * Firstly try to run the demo on the CPU mode and PASCAL data (the training may take a while, be patient):
-
+```
 	>> rcnn_demo('PASCAL',0)
-
+```
 * If all goes well try the GPU version (The CPU version should work properly, however the GPU version may have several issues. One I got was a MATLAB crash followed by: `Check failed: error == cudaSuccess (8 vs. 0)  invalid device function *** Check failure stack trace: *** Killed`. To solve this add the next two lines to the Makefile.config in its section (# CUDA architecture setting: going with all of them, you may also remove the following architectures since those are to be deprecated: `CUDA_ARCH := -gencode arch=compute_20,code=sm_20 \ -gencode arch=compute_20,code=sm_21 \`). For my GPU (GTX960M I used the following):
+```
 		-gencode arch=compute_50,code=sm_50 \
 		-gencode arch=compute_50,code=compute_50
-
+```
 and run `make clean`, `make all` again in the caffe-master directory. Another you may get is `Check failed: error == cudaSuccess (2 vs. 0) out of memory`. You may want to change the batchsize to a lower value (default is at 20).
 
 * After this, with all GPU issues solved, run:
-
+```
 	>> rcnn_demo
-
+```
 * If both demos work correctly, still on the rcnn directory, move on to DeepPed (if you want git clone https://github.com/DenisTome/DeepPed.git and git clone https://github.com/pdollar/toolbox.git) and try it with CPU mode:
-
+```
 	./DeepPed/fetch_models.sh
 	sudo nano startup.m
 	(nano - add at the end) addpath(genpath('DeepPed')); and addpath(genpath('toolbox'));
 	cd DeepPed
 	sudo nano deepPed_demo
 	(nano - edit) use_gpu=0
-	>> deepPed_demo
-
+	>>deepPed_demo
+```
 WARNING: This should already be resolved, but if you see the following and MATLAB segfaults with `[libprotobuf ERROR google/protobuf/text_format.cc:274] Error parsing text-format caffe.NetParameter: 7:7: Message type "caffe.NetParameter" has no field named "layer". WARNING: Logging before InitGoogleLogging() is written to STDERR F0630 15:03:01.788671  6076 upgrade_proto.cpp:571] Check failed: ReadProtoFromTextFile(param_file, param) Failed to parse NetParameter file: model-defs/alexnet_deploy_fc7_CAFFE.prototxt` replace the `rcnn/model-defs/alexnet_deploy_fc7_CAFFE.prototxt` with the one in `DeepPed/mode_def`.
 
-* To test the gpu CUDA support change to `use_gpu=1` and run `deepPed_demo` again.
+* To test the gpu CUDA support change to `use_gpu=1` and run `deepPed_demo` again. Make sure your GPU has enough memory! If it does not (you may get an error like `Check failed: error == cudaSuccess (2 vs 0)`, reduce the batchsize).
