@@ -31,11 +31,11 @@ plotDebugBoundingBoxes_campus2(cameraListImages,allDetections,start_frame);
 plotDetectionsCameraSpace_campus2(cameraListImages,allDetections);
 %%=======================================================
 % Load homographies, these homographies where obtained via the use of cp2tform
-[homographies, invhomographies] = loadHomographies_campus2(homography_directory); % Defined in global variables
+[homographies, invhomographies] = loadHomographies(homography_directory,'campus_2'); % Defined in global variables
 % Plot regions
 inplanes{1} = [494 545; 426 687; 602 681; 852 590; 631 539]; % Alameda cam
 inplanes{2} = [162 510; 702 608; 917 558; 603 390; 447 412]; % Central cam
-homoplanes = computeHomoplanes(inplanes, homographies, 'campus_2');
+homoplanes = computeHomoplanes(inplanes, homographies, length(cameras), 'campus_2');
 % Plot pedestrians
 plotDetectionsGroundPlane_campus2(allDetections,homographies);
 % Plot overlap of camera regions

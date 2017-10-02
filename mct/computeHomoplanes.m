@@ -1,4 +1,4 @@
-function homoplanes = computeHomoplanes(inplanes, homographies, dataset)
+function homoplanes = computeHomoplanes(inplanes, homographies, num_cameras, dataset)
     % Given a list of points representing regions put them in the ground plane
     % Inputs
     %  homographies: the homographies for each camera
@@ -7,16 +7,9 @@ function homoplanes = computeHomoplanes(inplanes, homographies, dataset)
     % Output
     %  homoplanes: ground planes for each camera
 
-    setCaptureParams_campus2;
-    setDetectionParams_campus2;
+    homoplanes = homographyTransform(inplanes,homographies,num_cameras,dataset);
 
-    if strcmp(dataset,'hda') == 1
-        homoplanes = homographyHDATransform(inplanes,homographies,1);
-    end
-    if strcmp(dataset,'campus_2') == 1
-        homoplanes = homographyCampusTransform(inplanes,homographies,1);
-    end
-    for i=1:2
+    for i=1:num_cameras
         homoplanes{i} = [homoplanes{i};homoplanes{i}(1,:)];
         inplanes{i} = [inplanes{i};inplanes{i}(1,:)];
     end

@@ -1,4 +1,4 @@
-function seq2img(camera, end_frame)
+function seq2img(camera, start_frame, end_frame)
 
     if ~exist('end_frame','var')
         end_frame=Inf;
@@ -12,7 +12,6 @@ function seq2img(camera, end_frame)
     output_directory = strcat('/home/pedro/hda_code/CAMPUS_II_PEDESTRIAN_TRACKING/software/rcnn/DeepPed/campus2_code/hda_data/images/cam', num2str(camera), '/');
 
     skip_frame = 1;
-    start_frame = 0;
     sr = seqIo(input_seq_file, 'reader');
     info = sr.getinfo();
     end_frame = min(info.numFrames - 1, end_frame);

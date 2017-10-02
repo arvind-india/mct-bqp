@@ -1,20 +1,21 @@
-# Multiple-camera tracking with BQP - v0.1
+# Multiple-camera tracking with BQP - v0.11
 
 ## Steps to install/Prerequisites:
 
 1. Download + Install [Matlab 2016/2017](https://www.mathworks.com/downloads/)
-2. Download + Install [RCNN](https://github.com/rbgirshick/rcnn)
-3. Download + Install [DeepPed](https://github.com/DenisTome/DeepPed) in the rcnn directory
-4. Download + Install [IlogCPLEX](https://ibm.onthehub.com/WebStore/OfferingDetails.aspx?o=9b4eadea-9776-e611-9421-b8ca3a5db7a1) in a directory of your choosing, do not forget to change that directory in settings/setTrackerParams.m
-5. `cd rcnn/DeepPed/`
-6. `git clone https://github.com/pedro-abreu/campus2_code`
-7. `cd rcnn`
-8. `sed -i '$ a addpath(genpath('DeepPed/campus2_code'));' startup.m`
-9.  Choose to run mct
-10. Run the code from the rcnn folder
-11. (Optional) Some utility functions from the [Dollar toolbox](https://github.com/pdollar/toolbox) are very useful for handling some of the data formats.
+2. Download + Install [Caffe](https://github.com/BVLC/caffe)
+3. Download + Install [RCNN](https://github.com/rbgirshick/rcnn)
+4. Download + Install [DeepPed](https://github.com/DenisTome/DeepPed) in the rcnn directory
+5. Download + Install [IlogCPLEX](https://ibm.onthehub.com/WebStore/OfferingDetails.aspx?o=9b4eadea-9776-e611-9421-b8ca3a5db7a1) in a directory of your choosing, do not forget to change that directory in `settings/setTrackerParams.m`
+6. `cd rcnn/DeepPed/`
+7. `git clone https://github.com/pedro-abreu/campus2_code`
+8. `cd rcnn`
+9. `sed -i '$ a addpath(genpath('DeepPed/campus2_code'));' startup.m`
+10. Your directory structure should now be *rcnn/DeepPed/campus2_code*. You can install Caffe wherever you want.
+11. Run the code from the rcnn folder, run either `campus2_script` or `hda_elevator_script`
+12. (Optional) Some utility functions from the [Dollar toolbox](https://github.com/pdollar/toolbox) are very useful for handling some of the data formats.
 
-*NOTE*: All data provided in the hda_data and campus2_data are not the actual datasets but results of the detections, which are useful to test the trackers. For the actual datasets see below.
+*NOTE*: All data provided in the hda_data and campus2_data are not the actual datasets for privacy reasons but actual text results of the detections, which are useful to test the trackers. For the actual datasets see below.
 
 ### Datasets used and quick start guide
 
