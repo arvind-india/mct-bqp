@@ -6,8 +6,8 @@ function [S_k, alpha_k] = update_active_set(S_k, alpha_k, v_k, gamma_k, gamma_ma
 % follwing paper: "On the Global Linear Convergence of Frank-Wolfe
 % Optimization Variants" by Julien and Jaggi, NIPS 2015
 
-S_0 = S_k;
-a_0 = alpha_k;
+%S_0 = S_k;
+%a_0 = alpha_k;
 
 if ~is_aw % normal step:
     if isempty(S_k) || gamma_k == gamma_max
@@ -17,9 +17,9 @@ if ~is_aw % normal step:
         [is_in, id] =ismember(S_k', v_k', 'rows');
         is_in = sum(is_in)~=0;
         id = id == 1;
-        
+
         alpha_k = alpha_k * ( 1 - gamma_k);
-        
+
         if is_in
             alpha_k(id) = alpha_k(id) + gamma_k;
         else
@@ -27,21 +27,21 @@ if ~is_aw % normal step:
             alpha_k = [alpha_k , gamma_k];
         end
     end
-    
+
 else % away step
-    
+
     [~, id] =ismember(S_k', v_k', 'rows');
     id = id ==1;
-    
+
     alpha_k = alpha_k * ( 1 + gamma_k);
-    
+
     if gamma_k == gamma_max % drop step
         S_k(:,id) = [];
         alpha_k(id)=[];
     else
         alpha_k(id) = alpha_k(id) - gamma_k;
     end
-    
+
 end
 
 end

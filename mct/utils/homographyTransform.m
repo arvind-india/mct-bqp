@@ -19,11 +19,11 @@ function homoplanes = homographyTransform(inplanes,homographies,num_cameras,data
         	v = pts(2);
         	o = 1;
             if strcmp(dataset,'hda') == 1
-                uvo = [u; v; 1];
+                uvo = [u; v; o];
         	    new_pts = homographies{i}*uvo;
             end
             if strcmp(dataset, 'campus_2') == 1
-                uvo = [u v 1];
+                uvo = [u v o];
             	new_pts = uvo*homographies{i};
             end
         	new_pts = [new_pts(1)./new_pts(3) new_pts(2)./new_pts(3)];

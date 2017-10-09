@@ -1,4 +1,4 @@
-function homoplanes = computeHomoplanes(inplanes, homographies, num_cameras, dataset)
+function homoplanes = computeGroundPlaneRegions(inplanes, homographies, num_cameras, dataset)
     % Given a list of points representing regions put them in the ground plane
     % Inputs
     %  homographies: the homographies for each camera

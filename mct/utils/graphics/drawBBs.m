@@ -1,4 +1,8 @@
 function drawBBs(dets, bb_color)
+    % Draw a bounding box given a detection and a colour
+    % Inputs
+    %  dets: numerical values of the detection
+    %  colour: colour in rgb triplets
 
     bb_offset = 12;
     bb_linewidth = 1;

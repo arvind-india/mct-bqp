@@ -21,4 +21,4 @@ global NMS_maxoverlap
 NMS_maxoverlap = [0.9 0.9];
 
 global use_GPU
-use_GPU = 0;
+use_GPU = 1;

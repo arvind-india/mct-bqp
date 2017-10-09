@@ -1,4 +1,11 @@
 function allDetections = filterACFInria(allDetections)
+    % Use the outlier tag existant in the original dataset
+    % Inputs
+    %  allDetections: all pedestrians identified by the detected
+
+    % Output
+    %  allDetections: all pedestrians identified by the detected
+
     setCaptureParams_hda_elevator;
 
     for id=1:length(cameras)

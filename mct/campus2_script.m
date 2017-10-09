@@ -7,39 +7,62 @@ setTrackerParams;
 % Pick if you want to display debug images or not
 show_images = 'on';
 set(0,'DefaultFigureVisible',show_images);
+
 %%=========================================================
 % Load images
-cameraListImages = {};
+cameraListImages = cell(2,1);
 for i=1:2
-    cameraListImages{i} = bbGt('getFiles',{image_directories{i}});
+    cameraListImages{i} = bbGt('getFiles',image_directories(i));
 end
 % Use the trained Neural Network to do pedestrian detection
-sample_size = 200;
+sample_size = 300;
 allDetections = CNNdetect(cameraListImages, sample_size);
 %%=========================================================
+inplanes{1} = [1 436; 1022 409; 1022 766; 0 766]; % Alameda cam
+inplanes{2} = [3 391; 328 391; 384 295; 475 295; 988 550; 930 622; 1 688]; % Central cam
 % Parse for systematic error detections and remove all empty cells
-allDetections = filterCNN_systematicErrors(allDetections);
+allDetections = filterCNN_systematicErrors(allDetections, inplanes);
 for i=1:2
     allDetections{i} = allDetections{i}(~cellfun('isempty',allDetections{i}));
 end
 %%=======================================================
 % Plot 4 sample_size images to show detections (with bounding boxes)
 start_frame = 4;
-plotDebugBoundingBoxes_campus2(cameraListImages,allDetections,start_frame);
+plotDebugBoundingBoxes(cameraListImages,allDetections,start_frame,'campus_2');
 %%=======================================================
 % Plot detections of all peds in both cameras (we consider that peds are represented by the middle of their BB's)
-plotDetectionsCameraSpace_campus2(cameraListImages,allDetections);
+plotDetectionsCameraSpace(cameraListImages,allDetections,'campus_2');
 %%=======================================================
 % Load homographies, these homographies where obtained via the use of cp2tform
 [homographies, invhomographies] = loadHomographies(homography_directory,'campus_2'); % Defined in global variables
 % Plot regions
-inplanes{1} = [494 545; 426 687; 602 681; 852 590; 631 539]; % Alameda cam
-inplanes{2} = [162 510; 702 608; 917 558; 603 390; 447 412]; % Central cam
-homoplanes = computeHomoplanes(inplanes, homographies, length(cameras), 'campus_2');
+%inplanes{1} = [494 545; 426 687; 602 681; 852 590; 631 539]; % Alameda cam
+%inplanes{2} = [162 510; 702 608; 917 558; 603 390; 447 412]; % Central cam
+%inplanes{1} = [1 436; 1022 409; 1022 766; 0 766]; % Alameda cam
+%inplanes{2} = [3 391; 328 391; 384 295; 475 295; 988 550; 930 622; 1 688]; % Central cam
+ground_plane_regions = computeGroundPlaneRegions(inplanes, homographies, length(cameras), 'campus_2');
+
+%%==============================================================
+% POM
+
+figure
+hold on;
+gplane = [-1000 1000 1000 -1000; 400 400 -1200 -1200];
+drawGrid(gplane,50,'campus_2');
+
+%%==============================================================
+
+colors = {'Red','Green'};
+for i=1:length(cameras)
+    drawPoly(ground_plane_regions{i},colors{i},0.5,false);
+end
 % Plot pedestrians
-plotDetectionsGroundPlane_campus2(allDetections,homographies);
+plotDetectionsGroundPlane(allDetections,homographies,ground_plane_regions,'show_outliers','campus_2');
 % Plot overlap of camera regions
-overlap = computeOverlap(homoplanes);
+[overlap, ~, ~] = computeOverlap(ground_plane_regions);
+drawPoly(overlap,'Black',1.0,false);
+
+
 %%==============================================================
 % Single camera preamble for tracking (uses grouping, appearance, cues, etc...) + uses ILOG CPLEX for Frank-Wolfe optimization
 predictions = {}; all_predictions = {}; past_observations = {};
@@ -47,7 +70,7 @@ cam_id = 1; %Camera id being considered in this iteration
 frame_number = 10; %Number of frames
 start_frame = 1;
 % Total number of sampled candidates for each target
-homography_constraint = false
+homography_constraint = false;
 g = 5; k = g^2; % k = 25
 lambda = 0.1; % variable for the appearance cues
 zeta = 0.3; % weight of the motion constraint
@@ -60,58 +83,24 @@ for f = start_frame:(start_frame + frame_number)
     n = size(allDetections{cam_id}{f},1); %j
 
     % Appearance cues
-    c_a = zeros(n*k,1);
     [c_a, allbbs] = appearanceConstraint(n,k,f,allDetections,cameraListImages,lambda,'naive','campus_2');
 
     % Spatial Proximity Constraint
-    Csp = zeros(n*k);
     Csp = spatialproximityConstraint(n,k,allbbs);
 
     % Group Constraint
-    Cg = zeros(n*k);
     Cg = groupConstraint(n,k,f,allbbs,allDetections);
 
     % Motion Constraint
-    c_m = zeros(n*k,1);
     c_m = motionConstraint(n,k,f,fps,allDetections,predictions,past_observations);
 
     % Neighbourhood motion Constraint - all targets are neighbours since we are not in a crowded scenery
-    c_nm = zeros(n*k,1);
     c_nm = neighbourhoodMotionConstraint(n,k,f,fps,allDetections,predictions,past_observations);
 
-    % Homography Constraint
-    if homography_constraint
-        omega = 0.1;
-        if size(cameraListImages,2) > 1 %Only consider homographies if we have more than 1 camera
-            c_h = homographyConstraint(allbbs,allDetections,cam_id,n,k,f,homographies,invhomographies);
-        end
-    end
-
-    % Prepare the inputs to the Frank Wolfe
-    Aeq = zeros(n,k*n);
-    for i=1:n
-        Aeq(i,(i-1)*k+1:i*k) = ones(k,1);
-    end
-    Beq = ones(n,1);
-
-    labels = zeros(k*n,1);
-    idx = 1;
-    for t=1:n
-        labels(idx:(idx+k-1)) = ones(k,1)*t;
-        idx = idx + k;
-    end
-
-    % Model the problem
-    A = sparse(Csp + Cg);
-    if size(cameraListImages,2) > 1
-        %b = c_a + zeta*c_m + eta*c_nm + omega*c_h;
-        b = c_a;
-    else
-        b = c_a + zeta*c_m + eta*c_nm;
-    end
+    [A,b,Aeq,Beq,labels] = FW_preamble(n,k,c_a,c_m,c_nm,Csp,Cg);
 
     % Solve the problem
-    [minx,minf,x_t,f_t,t1_end] = FW_crowd_wrapper(A,b, Aeq, Beq, labels,'swap'); % minx is the value we want
+    [minx,minf,x_t,f_t,t1_end] = FW_crowd_wrapper(A,b, Aeq, Beq, labels); % minx is the value we want
 
     % Get chunk of k candidates for target i and see which one was picked
     optimization_results = reshape(minx,k,[]);
@@ -123,7 +112,7 @@ for f = start_frame:(start_frame + frame_number)
         % Compute velocity
         target_pos = allDetections{1}{f}(target,:);
         % Store this frame's targets with their speed + pos to be used in motion
-        velocity = [((target_pos(3) + target_pos(5)/2) - (best_candidate_pos(1) + best_candidate_pos(3)/2))/(1.0/fps) ((target_pos(4) + target_pos(6)/2) - (best_candidate_pos(2) + best_candidate_pos(4)/2))/(1.0/fps)]
+        velocity = [((target_pos(3) + target_pos(5)/2) - (best_candidate_pos(1) + best_candidate_pos(3)/2))/(1.0/fps) ((target_pos(4) + target_pos(6)/2) - (best_candidate_pos(2) + best_candidate_pos(4)/2))/(1.0/fps)];
         past_observations{target} = [target_pos(3:4) velocity];
         % Store this frame's targets with their predictions
         predictions{target} = [target_pos(3:6); best_candidate_pos];

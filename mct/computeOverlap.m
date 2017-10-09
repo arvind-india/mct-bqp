@@ -5,6 +5,9 @@ function [pixelplane_overlap, kmat, mmat] = computeOverlap(homoplanes)
 
 	% Output
 	%  pixelplane_overlap: all intersections (i.e points) of the regions
+	%  kmat: points from the first camera region inside the second region
+	%  mmat: points from the second camera region insde the first region
+	
 	X = poly2poly(homoplanes{1}',homoplanes{2}');
 	intersect = poly2ccw(X');
 	if ~isempty(intersect)

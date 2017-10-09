@@ -24,7 +24,7 @@ function seq2img(camera, start_frame, end_frame)
         I = sr.getframe();
         imwrite(I,strcat(output_directory, num2str(frame),'.png'));
         clear I;
-    end;
+    end
     sr.close();
     disp('Finished.');
 

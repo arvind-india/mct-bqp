@@ -19,4 +19,4 @@ durations = [3780/fps; 3721/fps]; % Number of frames/fps
 
 global offset
 % Offset camera 58 to the camera 57 (58 is 40s later)
-offset = 64; % seconds
+offset = 64/fps; % seconds

@@ -1,5 +1,7 @@
 function allDetections = ACFdetect()
-    % Uses AcfInria
+    % Get detections from the HDA set that were performed with ACF
+    % Outputs
+    %  allDetections: all pedestrians identified by the detected
 
     setCaptureParams_hda_elevator; % Has camera info
     setDetectionParams_hda_elevator; % has detector info
