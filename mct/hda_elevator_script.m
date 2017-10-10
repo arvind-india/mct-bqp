@@ -51,8 +51,9 @@ end
 %%=========================================================
 % Get camera images
 data_folders = '~/hda_code/CAMPUS_II_PEDESTRIAN_TRACKING/software/rcnn/DeepPed/campus2_code/hda_data/images/cam';
-sample_size = 500;
-start_frame = 1000;
+% NOTE These two following values, especially sample size are likely to be altered for the actual tracking problem for debug reasons
+sample_size = 500; % Number of frames
+start_frame = 1000; % Frames to start collecting images
 for i=1:length(cameras)
     if exist(data_folders(i),'dir')
         foldercontent = dir(strcat(data_folders,num2str(cameras{i})));
@@ -241,6 +242,5 @@ for f = start_frame:(start_frame+frame_number)
 
     % Appearance cues
     [c_a, allbbs] = appearanceConstraint(n,k,f,allDetections,cameraListImages,lambda,'naive','hda');
-
 
 end

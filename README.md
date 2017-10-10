@@ -31,23 +31,23 @@ For the sake of completeness a short instalation guide to setup RCNN and DeepPed
 ~~~~~~~~~~~~~~~~
 
 1. boost, protobuf, hdf5, glog, gflags, general dependencies:
-
+```
 	sudo apt-get install libprotobuf-dev libleveldb-dev libsnappy-dev libopencv-dev libhdf5-serial-dev protobuf-compiler
 	sudo apt-get install --no-install-recommends libboost-all-dev
 	sudo apt-get install libgflags-dev libgoogle-glog-dev liblmdb-dev
-
+```
 2. CUDA 7+: Get your file from the NVidia website, I recommend the .deb for Ubuntu (some rumours said it was broken but I haven't had that experience), the file name should be something similar to
 `cuda-repo-ubuntu1604-8-0-local-ga2_8.0.61-1_amd64.deb`. More instructions can be found at the CUDA NVidia website
 
 3. ATLAS/BLAS:
-
+```
 	sudo apt-get install libatlas-base-dev
 	sudo apt-get install libopenblas-dev
-
+```
 4. (Optional Python):
-
+```
 	sudo apt install python-dev
-
+```
 * In `caffe-0.999-master` take a look and edit `Makefile.config` details. Be specially careful where you point caffe to.
 
 * Then follow the steps (if you get key=-2 at the end it means everything was installed correctly)
