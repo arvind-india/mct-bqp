@@ -5,7 +5,7 @@
 1. Download + Install [Matlab 2016/2017](https://www.mathworks.com/downloads/)
 2. Download + Install [Caffe](https://github.com/BVLC/caffe)
 3. Download + Install [RCNN](https://github.com/rbgirshick/rcnn)
-4. Download + Install [DeepPed](https://github.com/DenisTome/DeepPed) in the rcnn directory
+4. Download + Install [DeepPed](https://github.com/DenisTome/DeepPed) in the rcnn directory, for all previous steps see [here[«][QUICKSTART.md]
 5. Download + Install [IlogCPLEX](https://ibm.onthehub.com/WebStore/OfferingDetails.aspx?o=9b4eadea-9776-e611-9421-b8ca3a5db7a1) in a directory of your choosing, do not forget to change that directory in `settings/setTrackerParams.m`
 6. `cd rcnn/DeepPed/`
 7. `git clone https://github.com/pedro-abreu/campus2_code`
@@ -29,5 +29,5 @@
 ~~~~~~~~~~~~~~~~
 ~ Quick instalation guide for RCNN and DeepPed
 For the sake of completeness a short instalation guide to setup RCNN and DeepPed
-for Ubuntu based distros is included [here](QUICKSTART.md)
+for Ubuntu based distros is included.
 ~~~~~~~~~~~~~~~~
