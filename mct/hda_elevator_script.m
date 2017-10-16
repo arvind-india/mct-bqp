@@ -214,7 +214,7 @@ for f = start_frames(id):(start_frames(id) + (num_frames(id)-1))
             prev_n = size(allDetections{id-1}{f},1);
         end
 
-        % Appearance cues
+        % Appearance cues computed locally
         [l_c_a, allbbs, allbb_imgs] = appearanceConstraint(l_n,k,f,allDetections,cameraListImages,lambda,'naive','hda',id);
         c_a(prev_n * k + 1:(prev_n * k + 1) + l_n * k) = l_c_a;
 

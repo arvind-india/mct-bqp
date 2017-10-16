@@ -74,7 +74,7 @@ function [c_a, allbbs, allbb_imgs] = appearanceConstraint(n,k,f,allDetections,ca
     %%==============================================================================
     if strcmp(dataset,'hda') == 1
         feature_vector_size = 3 * 256; % 3 * Histogram size
-        I = eye(feature_vector_size,feature_vector_size);
+        I = eye(feature_vector_size, feature_vector_size);
         weights = zeros(feature_vector_size,n);
         allbbs = cell(n,1);
         allbb_imgs = cell(n,1);
@@ -91,8 +91,14 @@ function [c_a, allbbs, allbb_imgs] = appearanceConstraint(n,k,f,allDetections,ca
             bbimg = cell(k,1);
             bbpos = cell(k,1);
 
-            %Create a gaussian distribution in that grid
-            gaussian = gauss2d([sqrt(k) sqrt(k)], [0.6 0.6], [3 3]);
+            %Create a gaussian distribution in that grid. We assume correlations are null
+            % TODO pass this as a paremeter
+            sigma = sqrt(0.6);
+            cov_matrix = [sigma^2 0.0; 0.0 sigma^2];
+            if mod(sqrt(k),2) == 0
+                disp('Please make sqrt(k) odd.')
+            end
+            gaussian = gauss2d([sqrt(k) sqrt(k)], [0.6 0.6], round([3 3]));
             %Go over the grid and atribute values of y and get the bounding boxes
             xstep = bbwidth/sqrt(k);
             ystep = bbheight/sqrt(k);
@@ -101,6 +107,7 @@ function [c_a, allbbs, allbb_imgs] = appearanceConstraint(n,k,f,allDetections,ca
             starty = (bb(4)+bbheight/2)-2*ystep;
 
             % Create labels
+            % TODO: Try to vectorize this for speed
             y = zeros(k,1);
             for gridx=1:sqrt(k)
                 for gridy=1:sqrt(k)
