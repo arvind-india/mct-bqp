@@ -22,23 +22,25 @@ cameraListImages = cell(length(cameras),1);
 % Alternatively we were provided with very detailed regions from the people who own the datasets, we can use both
 %camera_plane_regions{1} = [59.7037 796.9403; 503.3571 353.2869; 1015.9567 375.7695; 1011.4602 798.4391];
 %camera_plane_regions{2} = [4.2471 796.4391; 5.7459 491.1792; 908.0410 399.7506; 1098.3923 798.4391];
-outlier_removal_regions{1} = load(strcat('~/hda_code/CAMPUS_II_PEDESTRIAN_TRACKING/software/rcnn/DeepPed/campus2_code/hda_data/homographies/visibility_points_image_',num2str(cameras{1}),'.mat'));
-outlier_removal_regions{2} = load(strcat('~/hda_code/CAMPUS_II_PEDESTRIAN_TRACKING/software/rcnn/DeepPed/campus2_code/hda_data/homographies/visibility_points_image_',num2str(cameras{2}),'.mat'));
-outlier_removal_regions{1} = outlier_removal_regions{1}.t; outlier_removal_regions{2} = outlier_removal_regions{2}.t;
+outlier_removal_regions = cell(length(cameras),1);
+for i=1:length(cameras)
+    outlier_removal_regions{i} = load(strcat(visibility_regions_directory,num2str(cameras{i}),'.mat'));
+    outlier_removal_regions{i} = outlier_removal_regions{i}.t;
+end
 %%=========================================================
 %openfig('~/hda_code/CAMPUS_II_PEDESTRIAN_TRACKING/software/rcnn/DeepPed/campus2_code/hda_data/images/7th_floor_ground_plane_reference_frame_map.fig');
 %hold on;
 ground_plane_regions = computeGroundPlaneRegions(outlier_removal_regions, homographies, length(cameras), 'hda');
 % Plot pedestrians
-plotDetectionsGroundPlane(allDetections,homographies, ground_plane_regions, 'show_outliers', 'hda');
 % Draw regions
 colors = {'Red','Green'};
 for i=1:length(cameras)
-    %drawPoly(ground_plane_regions{i},colors{i},0.5,false);
+    plotDetectionsGroundPlane(allDetections,homographies, ground_plane_regions, 'show_outliers', 'hda');
+    drawPoly(ground_plane_regions{i},colors{i},0.5,false);
 end
 % Plot overlap of camera regions
 [overlap, ~, ~] = computeOverlap(ground_plane_regions); % Performed in the pixel plane
-%drawPoly(overlap,'Black',1.0,false);
+drawPoly(overlap,'Black',1.0,false);
 %%=========================================================
 % Group allDetections in terms of frames for both cameras
 ground_truth = cell(length(cameras),1);
@@ -50,13 +52,12 @@ for i=1:length(cameras)
 end
 %%=========================================================
 % Get camera images
-data_folders = '~/hda_code/CAMPUS_II_PEDESTRIAN_TRACKING/software/rcnn/DeepPed/campus2_code/hda_data/images/cam';
 % NOTE These two following values, especially sample size are likely to be altered for the actual tracking problem for debug reasons
 sample_size = 500; % Number of frames
 start_frame = 1000; % Frames to start collecting images
 for i=1:length(cameras)
-    if exist(data_folders(i),'dir')
-        foldercontent = dir(strcat(data_folders,num2str(cameras{i})));
+    if exist(image_directory(i),'dir')
+        foldercontent = dir(strcat(image_directory,num2str(cameras{i})));
         if numel(foldercontent) == 2
             %# folder exists and is empty
             seq2img(cameras{i},start_frame, sample_size);
@@ -64,7 +65,7 @@ for i=1:length(cameras)
     end
     %cameraListImages{i} = cell(sample_size,1);
     for j=start_frame:(start_frame + sample_size)
-        cameraListImages{i}{j} = imread(strcat(data_folders, num2str(cameras{i}), '/', num2str(j), '.png'));
+        cameraListImages{i}{j} = imread(strcat(image_directory, num2str(cameras{i}), '/', num2str(j), '.png'));
     end
 end
 %%=========================================================
@@ -72,25 +73,16 @@ end
 %plotDebugBoundingBoxes(cameraListImages,allDetections,start_frame,'hda');
 %%=========================================================
 % Build POM
-ref_img = imread('~/hda_code/CAMPUS_II_PEDESTRIAN_TRACKING/software/rcnn/DeepPed/campus2_code/hda_data/images/ref_58.png');
-test_img = imread('~/hda_code/CAMPUS_II_PEDESTRIAN_TRACKING/software/rcnn/DeepPed/campus2_code/hda_data/images/test_img_58.png');
-test_frame = 450;
-%[img_diff, bin_img] = convertBB2bin_img(allDetections{2}{test_frame}, test_img, ref_img);
-%figure
-%imshow(out);
-%figure
-%imshow(bin_img);
 
+
+%%=========================================================
 gplane = imread('~/hda_code/CAMPUS_II_PEDESTRIAN_TRACKING/software/rcnn/DeepPed/campus2_code/hda_data/images/7th_floor_ground_plane_reference_frame_map.png');
 gplane = imcrop(gplane,[198,167,100,100]);
 figure
-imagesc([.5 .5],[.5 .5],gplane)
-
-%imshow(gplane);
+draw_elevator_patio(gplane);
 hold on;
-drawGrid(gplane,10,'hda');
-figure
-%%=========================================================
+drawGrid(new_plane,0.5,'hda');
+set(gca,'ydir','normal');
 cam_ground_truth = ground_truth;
 % Draw a ground truth for an experiment
 for id=1:length(cameras)
@@ -125,8 +117,11 @@ cam_57_ped15 = ground_truth{1}{ped2}(26:92,:);
 cam_58_ped15 = ground_truth{2}{ped2}(28:86,:);
 scatter(cam_57_ped15(:,9), cam_57_ped15(:,10),4,'MarkerFaceColor',rgb('Blue'),'MarkerEdgeColor',rgb('Blue')); % Blue
 scatter(cam_58_ped15(:,9), cam_58_ped15(:,10),4,'MarkerFaceColor',rgb('Purple'),'MarkerEdgeColor',rgb('Purple')); % Purple
+
 figure
 hold on
+draw_elevator_patio(gplane);
+
 scatter(cam_57_ped52(1:2,9), cam_57_ped52(1:2,10),'MarkerFaceColor',rgb('Red'),'MarkerEdgeColor',rgb('Red')); % Red
 scatter(cam_58_ped52(1:2,9), cam_58_ped52(1:2,10),'MarkerFaceColor',rgb('Orange'),'MarkerEdgeColor',rgb('Orange')); % Orange
 scatter(cam_57_ped15(1:2,9), cam_57_ped15(1:2,10),'MarkerFaceColor',rgb('Blue'),'MarkerEdgeColor',rgb('Blue')); % Blue
@@ -135,54 +130,11 @@ scatter(cam_58_ped15(1:2,9), cam_58_ped15(1:2,10),'MarkerFaceColor',rgb('Purple'
 % Compute scores
 previous_test_targets = [cam_57_ped52(1,:);cam_58_ped52(1,:);cam_57_ped15(1,:);cam_58_ped15(1,:)];
 test_targets = [cam_57_ped52(2,:);cam_58_ped52(2,:);cam_57_ped15(2,:);cam_58_ped15(2,:)];
+% TODO We have 4 targets so score is 4x4, generalize
 Scores = zeros(4,4);
-NOT_POSSIBLE = 0;
+assignmentAlgo = 'jonker_volgenant';
+[assignments, P] = solve_assignment(Scores, test_targets, previous_test_targets, cameraListImages, assignmentAlgo);
 
-for a=1:size(Scores,1)
-    for b=1:size(Scores,2)
-        if a == b % Same target
-            Scores(a,b) = NOT_POSSIBLE;
-        else
-            % Belonging to the same camera
-            if test_targets(a,1) == test_targets(b,1)
-                Scores(a,b) = NOT_POSSIBLE;
-            else
-                % Compute score
-                targ1 = test_targets(a,:); targ2 = test_targets(b,:);
-                prev_targ1 = previous_test_targets(a,:); prev_targ2 = previous_test_targets(b,:);
-                p1 = targ1(9:10);
-                p2 = targ2(9:10);
-                pos_score = abs(p1 - p2);
-                v1 = (p1 - prev_targ1(9:10))/(1/fps);
-                v2 = (p2 - prev_targ2(9:10))/(1/fps);
-                vel_score = abs(v1 - v2);
-                img1 = imcrop(cameraListImages{1}{targ1(2)},targ1(3:6));
-                I1 = [imhist(img1(:,:,1)) imhist(img1(:,:,2)) imhist(img1(:,:,3))];
-                img2 = imcrop(cameraListImages{2}{targ2(2)},targ1(3:6));
-
-                I2 = [imhist(img2(:,:,1)) imhist(img2(:,:,2)) imhist(img2(:,:,3))];
-                appearance_score = abs(I1 - I2);
-
-                % Inverse since the algorithm tries to bind the maximum
-                Scores(a,b) = 1/(sum(pos_score) + sum(vel_score) + (1/3)*sum(appearance_score(:,1),1)/(256*max(appearance_score(:,1))) + (1/3)*sum(appearance_score(:,2),1)/(256*max(appearance_score(:,2))) + (1/3)* sum(appearance_score(:,3),1)/(256*max(appearance_score(:,3))));
-
-            end
-        end
-    end
-end
-% Compile mex if not already compiled
-if ~exist('utils/fastAuction_v2.6/auctionAlgorithmSparseMex.mexa64', 'file')
-    mex -largeArrayDims auctionAlgorithmSparseMex.cpp -lut
-end
-Scores = sparse(Scores);
-% scale A such that round(Ascaled) has sufficient accuracy
-scalingFactor = 10^6;
-Scores_scaled = Scores * scalingFactor;
-
-% solve assignment problem
-tic
-[assignments, P] = sparseAssignmentProblemAuctionAlgorithm(Scores_scaled);
-time = toc;
 %%===========================================
 % After the best assignments, recompute homography matrix
 % Take the mean of the assigned points, this will be the input to the computation
@@ -195,13 +147,14 @@ end
 % Using the mean points and the original camera space points calculate both homographies
 new_Hs = cell(length(cameras),1);
 for id=1:length(cameras)
-    pin = cell(size(regions_xi,1)+size(mean_points,1),1);
-    pout = cell(size(regions_xi,1)+size(mean_points,1),1);
     % Get the regions, we want these to be mapped as well
     regions_xi = outlier_removal_regions{id}(:,1);
     regions_yi = outlier_removal_regions{id}(:,2);
     regions_xi_ = ground_plane_regions{id}(:,1);
     regions_yi_ = ground_plane_regions{id}(:,2);
+
+    pin = cell(size(regions_xi,1)+size(mean_points,1),1);
+    pout = cell(size(regions_xi,1)+size(mean_points,1),1);
     for r=1:size(regions_xi,1)
         pin{r} = [regions_xi(r) regions_yi(r)]; % xi,yi
         pout{r} = [regions_xi_(r) regions_yi_(r)]; % xi_, yi_
@@ -211,36 +164,84 @@ for id=1:length(cameras)
     % Get the mean_points for this camera
     for n=1:size(mean_points,1)
         if mean_points(i,3) == cameras{id}
-            xi = mean_points(n,5)+mean_points(7)/2;
-            yi = mean_points(n,6)+mean_points(8);
+            xi = mean_points(n,5) + mean_points(7)/2;
+            yi = mean_points(n,6) + mean_points(8);
             xi_ = mean_points(n,1);
             yi_ = mean_points(n,2);
             pin{n+r} = [xi yi];
             pout{n+r} = [xi_ yi_];
         end
     end
-    pin = cell2mat(pin');
-    pout = cell2mat(pout');
+    pin = cell2mat(pin);
+    pout = cell2mat(pout);
     new_Hs{id} = homography_solve(pin',pout');
 end
-new_estimate1 = new_Hs{1}*[test_targets(1,3)+test_targets(1,5)/2; test_targets(1,4)+test_targets(1,6); 1];
-new_estimate2 = new_Hs{2}*[test_targets(2,3)+test_targets(2,5)/2; test_targets(2,4)+test_targets(2,6); 1];
+new_estimate1 = new_Hs{1} * [test_targets(1,3)+test_targets(1,5)/2; test_targets(1,4)+test_targets(1,6); 1];
+new_estimate2 = new_Hs{2} * [test_targets(2,3)+test_targets(2,5)/2; test_targets(2,4)+test_targets(2,6); 1];
 new_estimate1 = new_estimate1./new_estimate1(3);
 new_estimate2 = new_estimate2./new_estimate2(3);
 plot(new_estimate1(1),new_estimate1(2),'g*');
 plot(new_estimate2(1),new_estimate2(2),'g*');
 
 %%=========================================================
-cam_id = 1;
-k = g_candidates^2;
+k = g_candidates^2; % Candidates per target
+start_frames = [1139 1030]; num_frames = [2 2]; % NOTE DEBUG FOR NOW
+%---------------------------------------------------------------------------
+for f = start_frames(id):(start_frames(id) + (num_frames(id)-1))
+    %---------------------------------------------------------------------------
+    n = 0; % All targets in all cameras
+    for id = 1:length(cameras)
+        n = n + size(allDetections{id}{f},1);
+    end
+    %---------------------------------------------------------------------------
+    % Create global arrays and matrices
+    [c_a, c_m, c_nm] = deal(zeros(n,1));
+    [Csp, Cg] = deal(zeros(n));
+    %---------------------------------------------------------------------------
+    % Compute global Csp
 
-for f = start_frame:(start_frame+frame_number)
-    %-------------This is done for every frame
-    disp(['Tracking in frame:  ' sprintf('%d',f) '  @  camera:  ' sprintf('%d',cameras{cam_id}) '...']);
-    % Number of targets in this frame
-    n = size(allDetections{cam_id}{f},1); %j
+    % Compute global Cg
 
-    % Appearance cues
-    [c_a, allbbs] = appearanceConstraint(n,k,f,allDetections,cameraListImages,lambda,'naive','hda');
+    %---------------------------------------------------------------------------
+    %for id = 1:length(cameras)
+    for id = 1:1
+        % NOTE: l prefix means local
+        disp(['Tracking in frame:  ' sprintf('%d',f) '  @  camera:  ' sprintf('%d',cameras{id}) '...']);
+        l_n = size(allDetections{id}{f},1);
+        disp(['Number of targets in this frame for this camera: ' sprintf('%d', l_n)]);
+        prev_n = 0;
+        if id ~= 1
+            prev_n = size(allDetections{id-1}{f},1);
+        end
+
+        % Appearance cues
+        [l_c_a, allbbs, allbb_imgs] = appearanceConstraint(l_n,k,f,allDetections,cameraListImages,lambda,'naive','hda',id);
+        c_a(prev_n * k + 1:(prev_n * k + 1) + l_n * k) = l_c_a;
+
+        % Motion Constraint
+        %l_c_m = motionConstraint(l_n,k,f,fps,allDetections,predictions,past_observations);
+
+        % Neighbourhood motion Constraint - all targets are neighbours since we are not in a crowded scenery
+        %l_c_nm = neighbourhoodMotionConstraint(l_n,k,f,fps,allDetections,predictions,past_observations);
+    end
+    %---------------------------------------------------------------------------
+    [A,b,Aeq,Beq,labels] = FW_preamble(n,k,c_a,c_m,c_nm,Csp,Cg);
+
+    % Solve the problem
+    [minx,minf,x_t,f_t,t1_end] = FW_crowd_wrapper(A,b, Aeq, Beq, labels); % minx is the value we want
+
+    % Get chunk of k candidates for target i and see which one was picked
+    optimization_results = reshape(minx,k,[]);
+
+    %---------------------------------------------------------------------------
+
+
+end
+
+figure
+testped = 2;
+for i=1:k
+    subplot(sqrt(k),sqrt(k),i)
+    imshow(allbb_imgs{testped}{i})
 
 end

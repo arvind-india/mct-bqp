@@ -7,14 +7,14 @@ function plotDebugBoundingBoxes(cameraListImages,allDetections,startframe,datase
     %  dataset: tag for the dataset
 
     if strcmp(dataset,'campus_2')
-        for id=1:2
+        for id=1:1
             index = 1;
             %startframe = 28 % Debug
-            figure
-            offset = startframe+3;
+            offset = startframe + 3;
             for fi=startframe:offset
             	subplot(2,2,index), subimage(imread(cameraListImages{id}{fi}));
                 %imshow(imread(cameraListImages{id}{fi})) % Debug
+                title(['Frame: ' sprintf('%d',fi)]);
                 for frame=1:size(allDetections{id},1)
                     if allDetections{id}{frame}(1) == fi
                         drawBBs(allDetections{id}{frame}(:,3:7),'g');
@@ -27,11 +27,11 @@ function plotDebugBoundingBoxes(cameraListImages,allDetections,startframe,datase
     if strcmp(dataset,'hda')
         for id=1:2
             index = 1;
-            figure
-            offset = startframe+3;
+            offset = startframe + 3;
             for fi=startframe:offset
                 subplot(2,2,index), subimage(imread(cameraListImages{id}{fi}));
                 %subplot(2,2,index);
+                title(['Frame: ' sprintf('%d',fi)]);
                 for i=1:size(allDetections{id},1)
                     if allDetections{id}(i,2) == fi
                         drawBBs(allDetections{id}(i,3:7),'g');

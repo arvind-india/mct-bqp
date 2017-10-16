@@ -1,4 +1,4 @@
-function [c_a, allbbs] = appearanceConstraint(n,k,f,allDetections,cameraListImages,lambda,type,dataset)
+function [c_a, allbbs, allbb_imgs] = appearanceConstraint(n,k,f,allDetections,cameraListImages,lambda,type,dataset,id)
 
     if strcmp(dataset,'campus_2') == 1
 
@@ -6,6 +6,7 @@ function [c_a, allbbs] = appearanceConstraint(n,k,f,allDetections,cameraListImag
         I = eye(feature_vector_size,feature_vector_size);
         weights = zeros(feature_vector_size,n);
         allbbs = cell(n,1);
+        allbb_imgs = cell(n,1);
         c_a = cell(n,1);
         for j=1:n
             Z = zeros(k,feature_vector_size);
@@ -65,6 +66,7 @@ function [c_a, allbbs] = appearanceConstraint(n,k,f,allDetections,cameraListImag
             %Store j's weights
             weights(:,j) = w;
             allbbs{j} = cell2mat(bbpos);
+            allbb_imgs{j} = bbimg;
         end
         c_a = cell2mat(c_a);
     end
@@ -75,12 +77,13 @@ function [c_a, allbbs] = appearanceConstraint(n,k,f,allDetections,cameraListImag
         I = eye(feature_vector_size,feature_vector_size);
         weights = zeros(feature_vector_size,n);
         allbbs = cell(n,1);
+        allbb_imgs = cell(n,1);
         c_a = cell(n,1);
         for j=1:n
             Z = zeros(k,feature_vector_size);
 
             %Get the bounding box j
-            bb = allDetections{1}{f}(j,:);
+            bb = allDetections{id}{f}(j,:);
             bbwidth = bb(5);
             bbheight = bb(6);
 
@@ -107,18 +110,17 @@ function [c_a, allbbs] = appearanceConstraint(n,k,f,allDetections,cameraListImag
                     bby = cy-bbheight/2;
                     y(sqrt(k)*(gridy-1)+gridx) = gaussian(gridx,gridy);
                     % TODO change this, should work end+1, to sqrt(k)*grix+gridy
-                    bbimg{sqrt(k)*gridx+gridy} = imcrop(imread(cameraListImages{1}{f}),[bbx bby bbwidth bbheight]);
-                    bbpos{sqrt(k)*gridx+gridy} = [bbx bby bbwidth bbheight];
+                    bbimg{sqrt(k)*(gridx-1)+gridy} = imcrop(cameraListImages{id}{f},[bbx bby bbwidth bbheight]);
+                    bbpos{sqrt(k)*(gridx-1)+gridy} = [bbx bby bbwidth bbheight];
                 end
             end
 
             %Compute features
             for i=1:k
-                feat = zeros(feature_vector_size,1);
-                feat(1) = imhist(bbimg{i}(:,:,1)); % Red histogram
-                feat(2) = imhist(bbimg{i}(:,:,2)); % Green histogram
-                feat(3) = imhist(bbimg{i}(:,:,3)); % Blue histogram
-                Z(i,:) = feat;
+                R = imhist(bbimg{i}(:,:,1));
+                G = imhist(bbimg{i}(:,:,2));
+                B = imhist(bbimg{i}(:,:,3));
+                Z(i,:) = [R' G' B'];  % RGB histogram
             end
             %Compute the weights
             if strcmp(type, 'naive') == 1
@@ -136,6 +138,7 @@ function [c_a, allbbs] = appearanceConstraint(n,k,f,allDetections,cameraListImag
             %Store j's weights
             weights(:,j) = w;
             allbbs{j} = cell2mat(bbpos);
+            allbb_imgs{j} = bbimg;
         end
         c_a = cell2mat(c_a);
     end

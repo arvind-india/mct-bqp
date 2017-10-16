@@ -9,15 +9,15 @@ function allDetections = CNNdetect(cameraListImages,sample_size)
     setCaptureParams_campus2;
 
     %==========================================================
-    [SVM, detector, rcnn_model, cl2, PersonW, PersonB] = loadCNN(LDCF_cascThr,LDCF_cascCal,LDCF_rescale, use_GPU);
-
-    %==========================================================
     %Just for now, working with this
-    allDetections = cell(length(cameras),1); %Run detections on the whole dataset for both camera and store detections per frame on an outside file
+    allDetections = cell(length(cameras),1); % Run detections on the whole dataset for both camera and store detections per frame on an outside file
 
     for id = 1:length(cameras)
+        %==========================================================
+        [~, detector, rcnn_model, cl2, PersonW, PersonB] = loadCNN(LDCF_cascThr(id),LDCF_cascCal(id),LDCF_rescale(id), use_GPU(id));
+        %==========================================================
         directory_not_exists = 0;
-        if use_GPU == 1
+        if use_GPU(id) == 1
             if ~exist(['~/hda_code/CAMPUS_II_PEDESTRIAN_TRACKING/software/rcnn/DeepPed/campus2_code/campus2_data/GPU/CNNdets_' sprintf('%02d', id) '.txt'], 'file')
                 directory_not_exists = 1;
             end
@@ -45,7 +45,7 @@ function allDetections = CNNdetect(cameraListImages,sample_size)
                 scores_cnn = feat*PersonW + PersonB;
 
                 % use second level SVM
-                scores = [dt_ldcf(:,5) scores_cnn]*cl2.W+cl2.b;
+                scores = [dt_ldcf(:,5) scores_cnn] * cl2.W + cl2.b;
 
                 % discard BBs with too low score and apply NMS
                 I = find(scores(:) > score_threshold(id));
@@ -60,7 +60,7 @@ function allDetections = CNNdetect(cameraListImages,sample_size)
             end
             disp(['Camera ' sprintf('%d',id) ' is done']);
             %Transform detections to a file so we can load faster in the future
-            if use_GPU == 1
+            if use_GPU(id) == 1
         	       fileID = fopen(['~/hda_code/CAMPUS_II_PEDESTRIAN_TRACKING/software/rcnn/DeepPed/campus2_code/campus2_data/GPU/CNNdets_' sprintf('%02d', id) '.txt'],'w');
             else
         	       fileID = fopen(['~/hda_code/CAMPUS_II_PEDESTRIAN_TRACKING/software/rcnn/DeepPed/campus2_code/campus2_data/CPU/CNNdets_' sprintf('%02d', id) '.txt'],'w');
@@ -74,7 +74,7 @@ function allDetections = CNNdetect(cameraListImages,sample_size)
 
         else
             % load the file
-            if use_GPU == 1
+            if use_GPU(id) == 1
         	       filename = ['~/hda_code/CAMPUS_II_PEDESTRIAN_TRACKING/software/rcnn/DeepPed/campus2_code/campus2_data/GPU/CNNdets_' sprintf('%02d', id) '.txt'];
             else
         	       filename = ['~/hda_code/CAMPUS_II_PEDESTRIAN_TRACKING/software/rcnn/DeepPed/campus2_code/campus2_data/CPU/CNNdets_' sprintf('%02d', id) '.txt'];
@@ -96,7 +96,14 @@ function [SVM, detector, rcnn_model, cl2, PersonW, PersonB] = loadCNN(LDCF_cascT
     % load and adjust the LDCF detector
     % See toolbox/detector/acfModify and acfDetect for more info
     load('toolbox/detector/models/LdcfCaltechDetector.mat');
+    % Show the default options
+    %opts=acfTrain()
+
     pModify = struct('cascThr',LDCF_cascThr,'cascCal',LDCF_cascCal,'rescale',LDCF_rescale); %stride not included yet
+    % detector   - detector trained via acfTrain
+
+    % TODO: Probably should define detector here?
+
     detector = acfModify(detector, pModify);
 
     % load the trained SVM

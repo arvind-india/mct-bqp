@@ -32,10 +32,11 @@ function plotDetectionsGroundPlane(allDetections,homographies,ground_plane_regio
                                 region_counter = region_counter + 1;
                             end
                         end
+                        marker_size = 5;
                         if region_counter ~= 0
-                            scatter(transfpos(n,1),transfpos(n,2),4,'filled','MarkerFaceColor',rgb('LightGray'));
+                            scatter(transfpos(n,1),transfpos(n,2),marker_size,'filled','MarkerFaceColor',rgb('LightGray'));
                         else
-                            scatter(transfpos(n,1),transfpos(n,2),4,'filled','MarkerFaceColor',rgb('Salmon'));
+                            scatter(transfpos(n,1),transfpos(n,2),marker_size,'filled','MarkerFaceColor',rgb('Salmon'));
                         end
                     end
                 else
@@ -69,14 +70,15 @@ function plotDetectionsGroundPlane(allDetections,homographies,ground_plane_regio
                             region_counter = region_counter + 1;
                         end
                     end
+                    marker_size = 5;
                     if region_counter ~= 0
-                        scatter(transfpos(n,1),transfpos(n,2),4,'filled','MarkerFaceColor',rgb('LightGray'));
+                        scatter(transfpos(n,1),transfpos(n,2),marker_size,'filled','MarkerFaceColor',rgb('LightGray'));
                     else
-                        scatter(transfpos(n,1),transfpos(n,2),4,'filled','MarkerFaceColor',rgb('Salmon'));
+                        scatter(transfpos(n,1),transfpos(n,2),marker_size,'filled','MarkerFaceColor',rgb('Salmon'));
                     end
                 end
             else
-                scatter(transfpos(:,1),transfpos(:,2),4,'filled','MarkerFaceColor',rgb('LightGray'));
+                scatter(transfpos(:,1),transfpos(:,2),marker_size,'filled','MarkerFaceColor',rgb('LightGray'));
             end
         end
     end

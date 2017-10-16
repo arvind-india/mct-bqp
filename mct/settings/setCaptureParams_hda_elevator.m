@@ -1,8 +1,11 @@
 global cameras
 cameras = {57, 58};
 
-global image_directories
-image_directories = {'~/hda_code/CAMPUS_II_PEDESTRIAN_TRACKING/software/rcnn/DeepPed/campus2_code/hda_data/filtered_crops/'};
+global image_directory
+image_directory = {'~/hda_code/CAMPUS_II_PEDESTRIAN_TRACKING/software/rcnn/DeepPed/campus2_code/hda_data/images/cam'};
+
+global crops_directories
+crops_directories = {'~/hda_code/CAMPUS_II_PEDESTRIAN_TRACKING/software/rcnn/DeepPed/campus2_code/hda_data/filtered_crops/'};
 
 global homography_directory
 homography_directory = '~/hda_code/CAMPUS_II_PEDESTRIAN_TRACKING/software/rcnn/DeepPed/campus2_code/hda_data/homographies';
