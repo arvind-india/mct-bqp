@@ -16,7 +16,7 @@ for i=1:length(cameras)
 end
 % Use the trained Neural Network to do pedestrian detection
 %sample_size = 300;
-sample_size = 12;
+sample_size = 300;
 allDetections = CNNdetect(cameraListImages, sample_size);
 %%=========================================================
 inplanes{1} = [1 436; 1022 409; 1022 766; 0 766]; % Alameda cam, these points were given to us
@@ -27,7 +27,7 @@ for i=1:2
     allDetections{i} = allDetections{i}(~cellfun('isempty',allDetections{i}));
 end
 %%=======================================================
-% Plot 4 sample_size images to show detections (with bounding boxes)
+% Plot images to show detections (with bounding boxes)
 figure; show_detections = 'slideshow';
 if strcmp('slideshow', show_detections) == 1
 
@@ -59,7 +59,7 @@ ground_plane_regions = computeGroundPlaneRegions(inplanes, homographies, length(
 figure
 hold on;
 gplane = [-1000 1000 1000 -1000; 400 400 -1200 -1200];
-drawGrid(gplane,50,'campus_2');
+drawGrid(gplane, 50, 'campus_2');
 
 %%==============================================================
 

@@ -3,9 +3,13 @@ setCaptureParams_hda_elevator;
 % Set params of the calibration
 setDetectionParams_hda_elevator;
 % Set parameters for the tracker
+warning off;
 setTrackerParams;
+% TODO: eliminating warnings of newline inbuilt function with this
+warning on;
 % Pick if you want to display debug images or not
 show_images = 'on';
+debug_plots = false;
 set(0,'DefaultFigureVisible',show_images);
 %%=========================================================
 allDetections = ACFdetect();
@@ -28,21 +32,25 @@ for i=1:length(cameras)
     outlier_removal_regions{i} = outlier_removal_regions{i}.t;
 end
 %%=========================================================
-%openfig('~/hda_code/CAMPUS_II_PEDESTRIAN_TRACKING/software/rcnn/DeepPed/campus2_code/hda_data/images/7th_floor_ground_plane_reference_frame_map.fig');
-%hold on;
 ground_plane_regions = computeGroundPlaneRegions(outlier_removal_regions, homographies, length(cameras), 'hda');
-% Plot pedestrians
-% Draw regions
-colors = {'Red','Green'};
-for i=1:length(cameras)
-    plotDetectionsGroundPlane(allDetections,homographies, ground_plane_regions, 'show_outliers', 'hda');
-    drawPoly(ground_plane_regions{i},colors{i},0.5,false);
+if debug_plots == true
+    openfig(floor_image);
+    hold on;
+    % Plot pedestrians
+    % Draw regions
+    colors = {'Red','Green'};
+    for i=1:length(cameras)
+        plotDetectionsGroundPlane(allDetections,homographies, ground_plane_regions, 'show_outliers', 'hda');
+        drawPoly(ground_plane_regions{i},colors{i},0.5,false);
+    end
 end
 % Plot overlap of camera regions
 [overlap, ~, ~] = computeOverlap(ground_plane_regions); % Performed in the pixel plane
-drawPoly(overlap,'Black',1.0,false);
+if debug_plots == true
+    drawPoly(overlap,'Black',1.0,false);
+end
 %%=========================================================
-% Group allDetections in terms of frames for both cameras
+% Group allDetections and ground_truth in terms of frames for both cameras
 ground_truth = cell(length(cameras),1);
 for i=1:length(cameras)
     ground_truth{i} = accumarray(allDetections{i}(:,8),(1:size(allDetections{i},1)).',[],@(x){allDetections{i}(x,:)},{});
@@ -56,16 +64,17 @@ end
 sample_size = 500; % Number of frames
 start_frame = 1000; % Frames to start collecting images
 for i=1:length(cameras)
-    if exist(image_directory(i),'dir')
-        foldercontent = dir(strcat(image_directory,num2str(cameras{i})));
+    direct = strcat(image_directory, num2str(cameras{i}));
+    if exist(direct{1},'dir')
+        foldercontent = dir(direct{1});
         if numel(foldercontent) == 2
-            %# folder exists and is empty
+            % folder exists and is empty
             seq2img(cameras{i},start_frame, sample_size);
         end
     end
     %cameraListImages{i} = cell(sample_size,1);
     for j=start_frame:(start_frame + sample_size)
-        cameraListImages{i}{j} = imread(strcat(image_directory, num2str(cameras{i}), '/', num2str(j), '.png'));
+        cameraListImages{i}{j} = imread(strcat(direct{1}, '/', num2str(j), '.png'));
     end
 end
 %%=========================================================
@@ -76,10 +85,10 @@ end
 
 
 %%=========================================================
-gplane = imread('~/hda_code/CAMPUS_II_PEDESTRIAN_TRACKING/software/rcnn/DeepPed/campus2_code/hda_data/images/7th_floor_ground_plane_reference_frame_map.png');
-gplane = imcrop(gplane,[198,167,100,100]);
+gplane = imread(floor_image);
+gplane = imcrop(gplane,elevator_patio);
 figure
-draw_elevator_patio(gplane);
+new_plane = draw_elevator_patio(gplane);
 hold on;
 drawGrid(new_plane,0.5,'hda');
 set(gca,'ydir','normal');
@@ -120,13 +129,16 @@ scatter(cam_58_ped15(:,9), cam_58_ped15(:,10),4,'MarkerFaceColor',rgb('Purple'),
 
 figure
 hold on
-draw_elevator_patio(gplane);
+%draw_elevator_patio(gplane);
 
-scatter(cam_57_ped52(1:2,9), cam_57_ped52(1:2,10),'MarkerFaceColor',rgb('Red'),'MarkerEdgeColor',rgb('Red')); % Red
-scatter(cam_58_ped52(1:2,9), cam_58_ped52(1:2,10),'MarkerFaceColor',rgb('Orange'),'MarkerEdgeColor',rgb('Orange')); % Orange
-scatter(cam_57_ped15(1:2,9), cam_57_ped15(1:2,10),'MarkerFaceColor',rgb('Blue'),'MarkerEdgeColor',rgb('Blue')); % Blue
-scatter(cam_58_ped15(1:2,9), cam_58_ped15(1:2,10),'MarkerFaceColor',rgb('Purple'),'MarkerEdgeColor',rgb('Purple')); % Purple
-
+% scatter(cam_57_ped52(1:2,9), cam_57_ped52(1:2,10),'MarkerFaceColor',rgb('Red'),'MarkerEdgeColor',rgb('Red')); % Red
+% scatter(cam_58_ped52(1:2,9), cam_58_ped52(1:2,10),'MarkerFaceColor',rgb('Orange'),'MarkerEdgeColor',rgb('Orange')); % Orange
+% scatter(cam_57_ped15(1:2,9), cam_57_ped15(1:2,10),'MarkerFaceColor',rgb('Blue'),'MarkerEdgeColor',rgb('Blue')); % Blue
+% scatter(cam_58_ped15(1:2,9), cam_58_ped15(1:2,10),'MarkerFaceColor',rgb('Purple'),'MarkerEdgeColor',rgb('Purple')); % Purple
+scatter(cam_57_ped15(2,9), cam_57_ped15(2,10),'MarkerFaceColor',rgb('Blue'),'MarkerEdgeColor',rgb('Blue')); % Blue
+scatter(cam_58_ped15(2,9), cam_58_ped15(2,10),'MarkerFaceColor',rgb('Purple'),'MarkerEdgeColor',rgb('Purple')); % Purple
+scatter(cam_57_ped52(2,9), cam_57_ped52(2,10),'MarkerFaceColor',rgb('Red'),'MarkerEdgeColor',rgb('Red')); % Red
+scatter(cam_58_ped52(2,9), cam_58_ped52(2,10),'MarkerFaceColor',rgb('Orange'),'MarkerEdgeColor',rgb('Orange')); % Orange
 % Compute scores
 previous_test_targets = [cam_57_ped52(1,:);cam_58_ped52(1,:);cam_57_ped15(1,:);cam_58_ped15(1,:)];
 test_targets = [cam_57_ped52(2,:);cam_58_ped52(2,:);cam_57_ped15(2,:);cam_58_ped15(2,:)];
@@ -142,50 +154,77 @@ mean_points = zeros(size(test_targets,1),2+size(test_targets,2));
 for i=1:size(mean_points,1)
     couple = [test_targets(i,:); test_targets(assignments(i),:)];
     mean_points(i,:) = [mean(couple(:,9:10)) test_targets(i,:)];
-    plot(mean_points(i,1),mean_points(i,2),'ko');
 end
+plot(mean_points(:,1),mean_points(:,2),'ko');
 % Using the mean points and the original camera space points calculate both homographies
 new_Hs = cell(length(cameras),1);
+rho_r = 3;
+rho_m = 5;
 for id=1:length(cameras)
+    % --------------------------------------------------------------------------
+    pin = {};
+    pout = {};
+    % Get the mean_points for this camera
+    for reps = 1:rho_m
+        for n=1:size(mean_points,1)
+            if mean_points(n,3) == cameras{id}
+                xi = mean_points(n,5) + mean_points(n,7)/2;
+                yi = mean_points(n,6) + mean_points(n,8);
+                xi_ = mean_points(n,1);
+                yi_ = mean_points(n,2);
+                pin{end+1} = [xi yi];
+                pout{end+1} = [xi_ yi_];
+            end
+        end
+    end
+    % --------------------------------------------------------------------------
     % Get the regions, we want these to be mapped as well
     regions_xi = outlier_removal_regions{id}(:,1);
     regions_yi = outlier_removal_regions{id}(:,2);
     regions_xi_ = ground_plane_regions{id}(:,1);
     regions_yi_ = ground_plane_regions{id}(:,2);
-
-    pin = cell(size(regions_xi,1)+size(mean_points,1),1);
-    pout = cell(size(regions_xi,1)+size(mean_points,1),1);
-    for r=1:size(regions_xi,1)
-        pin{r} = [regions_xi(r) regions_yi(r)]; % xi,yi
-        pout{r} = [regions_xi_(r) regions_yi_(r)]; % xi_, yi_
-    end
-    % TODO is this necessary?
-    r = size(regions_xi,1);
-    % Get the mean_points for this camera
-    for n=1:size(mean_points,1)
-        if mean_points(i,3) == cameras{id}
-            xi = mean_points(n,5) + mean_points(7)/2;
-            yi = mean_points(n,6) + mean_points(8);
-            xi_ = mean_points(n,1);
-            yi_ = mean_points(n,2);
-            pin{n+r} = [xi yi];
-            pout{n+r} = [xi_ yi_];
+    % NOTE Additional repeated points, A. Bernardino suggestion
+    for reps = 1:rho_r
+        for r=1:size(regions_xi,1)
+            pin{end+1} = [regions_xi(r) regions_yi(r)]; % xi,yi
+            pout{end+1} = [regions_xi_(r) regions_yi_(r)]; % xi_, yi_
         end
     end
-    pin = cell2mat(pin);
-    pout = cell2mat(pout);
-    new_Hs{id} = homography_solve(pin',pout');
+
+    pin = cell2mat(pin');
+    pout = cell2mat(pout');
+    tic
+    new_Hs{id} = solve_homography(pin',pout','svd');
+    homography_time = toc;
+    disp(strcat('Homography computation takes: ', num2str(homography_time)));
 end
-new_estimate1 = new_Hs{1} * [test_targets(1,3)+test_targets(1,5)/2; test_targets(1,4)+test_targets(1,6); 1];
-new_estimate2 = new_Hs{2} * [test_targets(2,3)+test_targets(2,5)/2; test_targets(2,4)+test_targets(2,6); 1];
+
+
+% Plot new point estimates
+new_estimate1 = new_Hs{1} * [test_targets(3,3)+test_targets(3,5)/2; test_targets(3,4)+test_targets(3,6); 1];
+new_estimate2 = new_Hs{2} * [test_targets(4,3)+test_targets(4,5)/2; test_targets(4,4)+test_targets(4,6); 1];
 new_estimate1 = new_estimate1./new_estimate1(3);
 new_estimate2 = new_estimate2./new_estimate2(3);
 plot(new_estimate1(1),new_estimate1(2),'g*');
-plot(new_estimate2(1),new_estimate2(2),'g*');
+plot(new_estimate2(1),new_estimate2(2),'m*');
+% Plot new ground_plane_regions estimates
+new_reg = cell(length(cameras),1);
+colors_new = {'Salmon','Lime'};
+colors_orig = {'Red','Green'};
+title(strcat('RHO_M: ', num2str(rho_m),',RHO_R: ', num2str(rho_r)));
+for i=2:length(cameras) % TODO Doing it only for camera 2 for debug
+    new_reg{i} = new_Hs{i} * transpose(horzcat(outlier_removal_regions{i}, ones(size(outlier_removal_regions{i},1),1)));
+    new_reg{i}(1,:) = new_reg{i}(1,:)./new_reg{i}(3,:);
+    new_reg{i}(2,:) = new_reg{i}(2,:)./new_reg{i}(3,:);
+    new_reg{i} = transpose(new_reg{i}(1:2,:));
+    drawPoly(new_reg{i}, colors_new{i}, 0.5, false);
+    drawPoly(ground_plane_regions{i}, colors_orig{i}, 0.5, false);
+end
 
 %%=========================================================
 k = g_candidates^2; % Candidates per target
 start_frames = [1139 1030]; num_frames = [2 2]; % NOTE DEBUG FOR NOW
+command;
 %---------------------------------------------------------------------------
 for f = start_frames(id):(start_frames(id) + (num_frames(id)-1))
     %---------------------------------------------------------------------------

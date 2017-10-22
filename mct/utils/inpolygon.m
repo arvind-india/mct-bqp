@@ -1,4 +1,4 @@
-function [cn,on] = inpoly(p,node,edge,TOL)
+function [cn,on] = inpolygon(p,node,edge,TOL)
 
 %  INPOLY: Point-in-polygon testing.
 %
@@ -153,7 +153,7 @@ for k = 1:nc         % Loop through edges
    if y(1)>=y1
       start = 1;
    elseif y(n)<y1
-      start = n+1;       
+      start = n+1;
    else
       lower = 1;
       upper = n;

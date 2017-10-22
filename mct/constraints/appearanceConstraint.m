@@ -98,27 +98,28 @@ function [c_a, allbbs, allbb_imgs] = appearanceConstraint(n,k,f,allDetections,ca
             if mod(sqrt(k),2) == 0
                 disp('Please make sqrt(k) odd.')
             end
-            gaussian = gauss2d([sqrt(k) sqrt(k)], [0.6 0.6], round([3 3]));
+            gaussian = gauss2d([sqrt(k) sqrt(k)], cov_matrix, round([sqrt(k)/2 sqrt(k)/2]));
             %Go over the grid and atribute values of y and get the bounding boxes
             xstep = bbwidth/sqrt(k);
             ystep = bbheight/sqrt(k);
 
-            startx = (bb(3)+bbwidth/2)-2*xstep;
-            starty = (bb(4)+bbheight/2)-2*ystep;
+            startx = (bb(3) + bbwidth/2)-2*xstep;
+            starty = (bb(4) + bbheight/2)-2*ystep;
 
             % Create labels
-            % TODO: Try to vectorize this for speed
+            % TODO: Try to vectorize this for speed (at least y)
             y = zeros(k,1);
-            for gridx=1:sqrt(k)
-                for gridy=1:sqrt(k)
-                    cx = startx + (gridx-1)*xstep;
-                    cy = starty + (gridy-1)*ystep;
+            for gridx = 1:sqrt(k)
+                for gridy = 1:sqrt(k)
+                    cx = startx + (gridx-1) * xstep;
+                    cy = starty + (gridy-1) * ystep;
+                    % TODO change this, should work end+1, to sqrt(k)*grix+gridy
+                    y(sqrt(k) * (gridy-1) + gridx) = gaussian(gridx, gridy);
+
                     bbx = cx-bbwidth/2;
                     bby = cy-bbheight/2;
-                    y(sqrt(k)*(gridy-1)+gridx) = gaussian(gridx,gridy);
-                    % TODO change this, should work end+1, to sqrt(k)*grix+gridy
-                    bbimg{sqrt(k)*(gridx-1)+gridy} = imcrop(cameraListImages{id}{f},[bbx bby bbwidth bbheight]);
-                    bbpos{sqrt(k)*(gridx-1)+gridy} = [bbx bby bbwidth bbheight];
+                    bbimg{sqrt(k) * (gridx-1)+gridy} = imcrop(cameraListImages{id}{f},[bbx bby bbwidth bbheight]);
+                    bbpos{sqrt(k) * (gridx-1)+gridy} = [bbx bby bbwidth bbheight];
                 end
             end
 

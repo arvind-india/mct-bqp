@@ -9,3 +9,9 @@ ground_truth = {strcat('~/hda_code/CAMPUS_II_PEDESTRIAN_TRACKING/software/rcnn/D
 
 global visibility_regions_directory
 visibility_regions_directory = '~/hda_code/CAMPUS_II_PEDESTRIAN_TRACKING/software/rcnn/DeepPed/campus2_code/hda_data/homographies/visibility_points_image_';
+
+global floor_image
+floor_image = '~/hda_code/CAMPUS_II_PEDESTRIAN_TRACKING/software/rcnn/DeepPed/campus2_code/hda_data/images/7th_floor_ground_plane_reference_frame_map.png';
+
+global elevator_patio
+elevator_patio = [198,167,100,100];

@@ -97,7 +97,7 @@ function [SVM, detector, rcnn_model, cl2, PersonW, PersonB] = loadCNN(LDCF_cascT
     % See toolbox/detector/acfModify and acfDetect for more info
     load('toolbox/detector/models/LdcfCaltechDetector.mat');
     % Show the default options
-    %opts=acfTrain()
+    % opts=acfTrain()
 
     pModify = struct('cascThr',LDCF_cascThr,'cascCal',LDCF_cascCal,'rescale',LDCF_rescale); %stride not included yet
     % detector   - detector trained via acfTrain
