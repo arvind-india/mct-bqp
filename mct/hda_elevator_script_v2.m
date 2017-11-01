@@ -158,66 +158,36 @@ comparison_first_homo = new_Hs{id};
 %--------------------------------------------------------------------------
 homography2 = new_Hs{2};
 % --------------------------------------------------------------------------
-% Recalculate points using the new second Homography
-for n=1:size(pedestrian_points,1)
-    if pedestrian_points(n,5) == cameras{id}
-        xi = pedestrian_points(n,7) + pedestrian_points(n,9)/2;
-        yi = pedestrian_points(n,8) + pedestrian_points(n,10);
-        a = new_Hs{2} * [xi; yi; 1];
-        a = a./a(3);
-        pedestrian_points(n,1) = a(1);
-        pedestrian_points(n,2) = a(2);
-    end
-end
-id = 2;
-[pin, pout] = aux_homo_debug(id, cameras, outlier_removal_regions, ground_plane_regions, pedestrian_points, rho_r, rho_m);
-tic
-new_Hs{id} = solve_homography(pin',pout','svd');
-homography_time = toc;
-disp(strcat('Homography computation takes: ', num2str(homography_time)));
 
-% Recalculate points using the new first Homography
-for n=1:size(pedestrian_points,1)
-    if pedestrian_points(n,5) == cameras{id}
-        xi = pedestrian_points(n,7) + pedestrian_points(n,9)/2;
-        yi = pedestrian_points(n,8) + pedestrian_points(n,10);
-        a = new_Hs{1} * [xi; yi; 1];
-        a = a./a(3);
-        pedestrian_points(n,1) = a(1);
-        pedestrian_points(n,2) = a(2);
-    end
+for reps=1:20
+    % Recalculate points using the new second Homography
+    id = 2;
+    [new_Hs, pedestrian_points] = alternating_homog(new_Hs, pedestrian_points, id, outlier_removal_regions, ground_plane_regions, rho_r, rho_m);
+
+    % Recalculate points using the new first Homography
+    id = 1;
+    [new_Hs, pedestrian_points] = alternating_homog(new_Hs, pedestrian_points, id, outlier_removal_regions, ground_plane_regions, rho_r, rho_m);
+    % Plot new point estimates
+    new_estimate1 = new_Hs{1} * [test_targets(3,3)+test_targets(3,5)/2; test_targets(3,4)+test_targets(3,6); 1];
+    
+    new_estimate2 = new_Hs{2} * [test_targets(4,3)+test_targets(4,5)/2; test_targets(4,4)+test_targets(4,6); 1];
+
+
+    new_estimate1 = new_estimate1./new_estimate1(3);
+    new_estimate2 = new_estimate2./new_estimate2(3);
+    plot(new_estimate1(1),new_estimate1(2), 'Marker', '*', 'Color',rgb('LightGreen'));
+    plot(new_estimate2(1), new_estimate2(2), 'Marker', '*','Color',rgb('LightSalmon'));
 end
-id = 1;
-[pin, pout] = aux_homo_debug(id, cameras, outlier_removal_regions, ground_plane_regions, pedestrian_points, rho_r, rho_m);
-tic
-new_Hs{id} = solve_homography(pin',pout','svd');
-homography_time = toc;
-disp(strcat('Homography computation takes: ', num2str(homography_time)));
 %%==============================================================================
-% Plot new point estimates
-new_estimate1 = new_Hs{1} * [test_targets(3,3)+test_targets(3,5)/2; test_targets(3,4)+test_targets(3,6); 1];
-
-new_estimate1_before_iteration = comparison_first_homo * [test_targets(3,3)+test_targets(3,5)/2; test_targets(3,4)+test_targets(3,6); 1];
-
-new_estimate2 = new_Hs{2} * [test_targets(4,3)+test_targets(4,5)/2; test_targets(4,4)+test_targets(4,6); 1];
 
 new_estimate2_before_iteration = comparison_second_homo * [test_targets(4,3)+test_targets(4,5)/2; test_targets(4,4)+test_targets(4,6); 1];
-
-new_estimate1 = new_estimate1./new_estimate1(3);
-new_estimate2 = new_estimate2./new_estimate2(3);
-
+new_estimate1_before_iteration = comparison_first_homo * [test_targets(3,3)+test_targets(3,5)/2; test_targets(3,4)+test_targets(3,6); 1];
 new_estimate2_before_iteration = new_estimate2_before_iteration./new_estimate2_before_iteration(3);
-
 new_estimate1_before_iteration = new_estimate1_before_iteration./new_estimate1_before_iteration(3);
-
 plot(new_estimate1_before_iteration(1), new_estimate1_before_iteration(2), 'Marker', '*','Color',rgb('DarkGreen'));
 plot(new_estimate2_before_iteration(1), new_estimate2_before_iteration(2), 'Marker', '*', 'Color', rgb('DarkRed'));
 
-plot(new_estimate1(1),new_estimate1(2), 'Marker', '*', 'Color',rgb('LightGreen'));
-plot(new_estimate2(1), new_estimate2(2), 'Marker', '*','Color',rgb('LightSalmon'));
-
 plot([new_estimate2_before_iteration(1) new_estimate2(1)],[new_estimate2_before_iteration(2) new_estimate2(2)],'Color',rgb('Red'));
-
 new_estimate2_otherped = new_Hs{2} * [test_targets(2,3)+test_targets(2,5)/2; test_targets(2,4)+test_targets(2,6); 1];
 new_estimate2_otherped = new_estimate2_otherped./new_estimate2_otherped(3);
 plot(new_estimate2_otherped(1),new_estimate2_otherped(2),'y*');

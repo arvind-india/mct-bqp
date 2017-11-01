@@ -1,4 +1,5 @@
 function [assignments, P] = solve_assignment(Scores, test_targets, previous_test_targets, cameraListImages, assignmentAlgo)
+    setCaptureParams_hda_elevator;
     if strcmp(assignmentAlgo, 'bertsekas') == 1
         NOT_POSSIBLE = 0; % Means this is impossible in the implementation
     elseif (strcmp(assignmentAlgo, 'jonker_volgenant') == 1) || (strcmp(assignmentAlgo, 'munkres') == 1)
@@ -16,7 +17,6 @@ function [assignments, P] = solve_assignment(Scores, test_targets, previous_test
                     % Compute score
 
                     % TODO Generalize this stuff
-
 
                     targ1 = test_targets(a,:); targ2 = test_targets(b,:);
                     prev_targ1 = previous_test_targets(a,:); prev_targ2 = previous_test_targets(b,:);

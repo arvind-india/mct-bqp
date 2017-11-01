@@ -1,6 +1,6 @@
 global cplex_folder
 cplex_folder = '/opt/ibm/ILOG/CPLEX_Studio1271/cplex/matlab/x86-64_linux';
-addpath(cplex_folder);
+addpath(cplex_folder)
 
 global FW_max_iterations
 FW_max_iterations = 5000;  % max number of iteration, I found out the opts.TOL (tolerance?) is more important in the convergence in my problem

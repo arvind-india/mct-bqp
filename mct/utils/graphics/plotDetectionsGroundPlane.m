@@ -28,7 +28,7 @@ function plotDetectionsGroundPlane(allDetections,homographies,ground_plane_regio
                     for n = 1:size(transfpos,1)
                         region_counter = 0;
                         for g=1:length(ground_plane_regions)
-                            if inpoly(transfpos(n,:),ground_plane_regions{g})
+                            if inpolygon(transfpos(n,:),ground_plane_regions{g})
                                 region_counter = region_counter + 1;
                             end
                         end
@@ -66,7 +66,7 @@ function plotDetectionsGroundPlane(allDetections,homographies,ground_plane_regio
                 for n = 1:size(transfpos,1)
                     region_counter = 0;
                     for g=1:length(ground_plane_regions)
-                        if inpoly(transfpos(n,:),ground_plane_regions{g})
+                        if inpolygon(transfpos(n,:),ground_plane_regions{g})
                             region_counter = region_counter + 1;
                         end
                     end

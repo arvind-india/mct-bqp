@@ -25,7 +25,8 @@ LDCF_cascThr = [-1 -1];
 
 % .cascCal    - [] cascade calibration (affects speed/accuracy)
 global LDCF_cascCal
-LDCF_cascCal = [0.028 0.032];
+% 0.020 0.025 0.030 0.035
+LDCF_cascCal = [0.030 0.032];
 
 % .rescale    - [] rescale entire detector by given ratio, irreversible
 global LDCF_rescale
@@ -37,14 +38,16 @@ pNMS_overlap = [0.9 0.9];
 
 % .stride     - [] spatial stride between detection windows
 global LDCF_stride
-LDCF_stride = [4 2];
+LDCF_stride = [4 4];
 
 %-------------------------------------------------------------------------------
 % The following are used to filter out the CNN detections
 global score_threshold
-score_threshold = [0.9 0.8];
+% 0.25 0.5 0.75 1.0
+score_threshold = [0.6 0.9];
 
 global NMS_maxoverlap
+% 0.25 0.5 0.75 0.9
 NMS_maxoverlap = [0.9 0.9];
 
 %-------------------------------------------------------------------------------
