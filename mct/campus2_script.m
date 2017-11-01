@@ -11,18 +11,22 @@ set(0,'DefaultFigureVisible',show_images);
 %%=========================================================
 % Load images
 cameraListImages = cell(2,1);
+% NOTE: this was in a wrong order, we had to do our own cust bbGt function
+%for i=1:length(cameras)
+%    cameraListImages{i} = bbGt('getFiles',image_directories(i));
+%end
 for i=1:length(cameras)
-    cameraListImages{i} = bbGt('getFiles',image_directories(i));
+    cameraListImages{i} = bb_getImages(image_directories{i});
 end
 % Use the trained Neural Network to do pedestrian detection
 %sample_size = 300;
-sample_size = 300;
+sample_size = 12;
 allDetections = CNNdetect(cameraListImages, sample_size);
 %%=========================================================
 inplanes{1} = [1 436; 1022 409; 1022 766; 0 766]; % Alameda cam, these points were given to us
 inplanes{2} = [3 391; 328 391; 384 295; 475 295; 988 550; 930 622; 1 688]; % Central cam, these points were given to us
 % Parse for systematic error detections and remove all empty cells
-allDetections = filterCNN_systematicErrors(allDetections, inplanes);
+allDetections = filterCNN(allDetections, inplanes);
 for i=1:2
     allDetections{i} = allDetections{i}(~cellfun('isempty',allDetections{i}));
 end
@@ -38,7 +42,7 @@ if strcmp('slideshow', show_detections) == 1
         plotDebugBoundingBoxes(cameraListImages,allDetections,start_frame,'campus_2');
     end
 elseif strcmp('4frames', show_detections) == 1
-    start_frame = 3;
+    start_frame = 1;
     plotDebugBoundingBoxes(cameraListImages,allDetections,start_frame,'campus_2');
 end
 %%=======================================================

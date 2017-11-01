@@ -136,63 +136,31 @@ plot(pedestrian_points(:,1),pedestrian_points(:,2),'ko');
 new_Hs = cell(length(cameras),1);
 rho_r = 3;
 rho_m = 1;
-% Method 1 -- fix one of the transformations H1 and correct the other
 % Method 2 -- calculate H1 and H2 iteratively, fixing one and then the other
 new_Hs{1} = homographies{1};
-% --------------------------------------------------------------------------
-id = 2;
-[pin, pout] = aux_homo_debug(id, cameras, outlier_removal_regions, ground_plane_regions, pedestrian_points, rho_r, rho_m);
-tic
-new_Hs{id} = solve_homography(pin',pout','svd');
-homography_time = toc;
-disp(strcat('Homography computation takes: ', num2str(homography_time)));
-comparison_second_homo = new_Hs{id};
-% --------------------------------------------------------------------------
-id = 1;
-[pin, pout] = aux_homo_debug(id, cameras, outlier_removal_regions, ground_plane_regions, pedestrian_points, rho_r, rho_m);
-tic
-new_Hs{id} = solve_homography(pin',pout','svd');
-homography_time = toc;
-disp(strcat('Homography computation takes: ', num2str(homography_time)));
-comparison_first_homo = new_Hs{id};
-%--------------------------------------------------------------------------
-homography2 = new_Hs{2};
-% --------------------------------------------------------------------------
-% Recalculate points using the new second Homography
-for n=1:size(pedestrian_points,1)
-    if pedestrian_points(n,5) == cameras{id}
-        xi = pedestrian_points(n,7) + pedestrian_points(n,9)/2;
-        yi = pedestrian_points(n,8) + pedestrian_points(n,10);
-        a = new_Hs{2} * [xi; yi; 1];
-        a = a./a(3);
-        pedestrian_points(n,1) = a(1);
-        pedestrian_points(n,2) = a(2);
-    end
-end
-id = 2;
-[pin, pout] = aux_homo_debug(id, cameras, outlier_removal_regions, ground_plane_regions, pedestrian_points, rho_r, rho_m);
-tic
-new_Hs{id} = solve_homography(pin',pout','svd');
-homography_time = toc;
-disp(strcat('Homography computation takes: ', num2str(homography_time)));
+c1_points = [pedestrian_points(1,7)+pedestrian_points(1,9)/2 pedestrian_points(1,8)+pedestrian_points(1,10) 1; pedestrian_points(3,7)+pedestrian_points(3,9)/2 pedestrian_points(3,8)+pedestrian_points(3,10) 1; pedestrian_points(1,7)+pedestrian_points(1,9)/2 pedestrian_points(1,8)+pedestrian_points(1,10) 1; pedestrian_points(3,7)+pedestrian_points(3,9)/2 pedestrian_points(3,8)+pedestrian_points(3,10) 1];
+% Read detections in the first camera
+c2_points = [pedestrian_points(2,7)+pedestrian_points(2,9)/2 pedestrian_points(2,8)+pedestrian_points(2,10) 1; pedestrian_points(4,7)+pedestrian_points(4,9)/2 pedestrian_points(4,8)+pedestrian_points(4,10) 1; pedestrian_points(2,7)+pedestrian_points(2,9)/2 pedestrian_points(2,8)+pedestrian_points(2,10) 1; pedestrian_points(4,7)+pedestrian_points(4,9)/2 pedestrian_points(4,8)+pedestrian_points(4,10) 1];
+% Read detections in the second camera
+w = new_Hs{1} * c1_points';
 
-% Recalculate points using the new first Homography
-for n=1:size(pedestrian_points,1)
-    if pedestrian_points(n,5) == cameras{id}
-        xi = pedestrian_points(n,7) + pedestrian_points(n,9)/2;
-        yi = pedestrian_points(n,8) + pedestrian_points(n,10);
-        a = new_Hs{1} * [xi; yi; 1];
-        a = a./a(3);
-        pedestrian_points(n,1) = a(1);
-        pedestrian_points(n,2) = a(2);
-    end
-end
-id = 1;
-[pin, pout] = aux_homo_debug(id, cameras, outlier_removal_regions, ground_plane_regions, pedestrian_points, rho_r, rho_m);
-tic
-new_Hs{id} = solve_homography(pin',pout','svd');
-homography_time = toc;
-disp(strcat('Homography computation takes: ', num2str(homography_time)));
+w(1,:) = w(1,:)./w(3,:);
+w(2,:) = w(2,:)./w(3,:);
+w(3,:) = w(3,:)./w(3,:);
+w = w(1:2,:);
+
+% --------------------------------------------------------------------------
+% cvx_begin
+%     variables H(3,3) a(3,4) b(2,4)
+%     minimize(sum(sum((transpose(w - b)).^2,2)))
+%     subject to
+%         a = H * c2_points';
+%         b(1,:) = a(1,:)./a(3,:);
+%         b(2,:) = a(2,:)./a(3,:);
+% cvx_end
+% What we actually want is to get b = H, can be done with a closed form expression
+
+new_Hs{2} = H;
 %%==============================================================================
 % Plot new point estimates
 new_estimate1 = new_Hs{1} * [test_targets(3,3)+test_targets(3,5)/2; test_targets(3,4)+test_targets(3,6); 1];
@@ -292,8 +260,6 @@ for f = start_frames(id):(start_frames(id) + (num_frames(id)-1))
     optimization_results = reshape(minx,k,[]);
 
     %---------------------------------------------------------------------------
-
-
 end
 
 figure

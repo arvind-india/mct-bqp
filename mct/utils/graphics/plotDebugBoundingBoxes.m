@@ -7,7 +7,7 @@ function plotDebugBoundingBoxes(cameraListImages,allDetections,startframe,datase
     %  dataset: tag for the dataset
 
     if strcmp(dataset,'campus_2')
-        for id=2:2
+        for id=1:1
             index = 1;
             %startframe = 28 % Debug
             offset = startframe + 3;
