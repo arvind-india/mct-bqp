@@ -33,7 +33,7 @@ function allDetections = filterCNN(allDetections, inplanes)
                 m=1;
                 while m <= size(allDetections{id}{frame},1)
                     val = allDetections{id}{frame}(m,3:4);
-                    if inpolygon(val,inplanes{id}) == 0
+                    if polyin(val,inplanes{id}) == 0
                         allDetections{id}{frame}(m,:) = [];
                         m = m-1;
                     end

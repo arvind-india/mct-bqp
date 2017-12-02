@@ -1,4 +1,4 @@
-function [cn,on] = inpolygon(p,node,edge,TOL)
+function [cn,on] = polyin(p,node,edge,TOL)
 
 %  INPOLY: Point-in-polygon testing.
 %

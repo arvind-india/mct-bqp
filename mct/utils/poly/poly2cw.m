@@ -1,0 +1,12 @@
+function out_p = poly2cw(p) % Clockwise ordering of the points (works for convex polygons)
+    x = p(:,1);
+    y = p(:,2);
+    cx = mean(x);
+    cy = mean(y);
+    a = atan2(y - cy, x - cx);
+    [~, order] = sort(a);
+    x = x(order);
+    y = y(order);
+    out_p = p;
+    out_p(:,1) = x;
+    out_p(:,2) = y;

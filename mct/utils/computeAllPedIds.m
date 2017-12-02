@@ -1,13 +1,5 @@
 function allPedIds = computeAllPedIds(homographies, allPedIds, cameras)
-    % Generic 2d gaussian function without cross-correlations (circular gaussian)
-    % Inputs
-    %  gsize: gridsize for the gaussian evaluation
-    %  sigma: correlation matrix
-    %  center: mean
-
-    % Output
-    %  mat: matrix of the distribution
-
+    
     for id=1:length(cameras)
         for p=1:size(allPedIds{id},1)
             if ~isempty(allPedIds{id}{p})

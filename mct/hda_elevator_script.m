@@ -17,7 +17,6 @@ allDetections = ACFdetect();
 allDetections = filterACFInria(allDetections); % If you want more than 1 ground_truth label for each ped you can change it here
 %%=========================================================
 % Plot detections of all peds in both cameras (we consider that peds are represented by the middle of their BB's)
-cameraListImages = cell(length(cameras),1);
 %plotDetectionsCameraSpace(allDetections,cameraListImages,'hda');
 %%=========================================================
 % Load homographies, these homographies where obtained via the use of cp2tform
@@ -32,8 +31,7 @@ end
 %%=========================================================
 ground_plane_regions = computeGroundPlaneRegions(outlier_removal_regions, homographies, length(cameras), 'hda');
 if debug_plots == true
-    openfig(floor_image);
-    hold on;
+    openfig(floor_image); hold on;
     colors = {'Red','Green'};
     for i=1:length(cameras)
         plotDetectionsGroundPlane(allDetections,homographies, ground_plane_regions, 'show_outliers', 'hda'); % Plot pedestrians
@@ -59,187 +57,41 @@ end
 % NOTE These two following values, especially sample size are likely to be altered for the actual tracking problem for debug reasons
 sample_size = 500; % Number of frames
 start_frame = 1000; % Frames to start collecting images
-for i=1:length(cameras)
-    direct = strcat(image_directory, num2str(cameras{i}));
-    if exist(direct{1},'dir')
-        foldercontent = dir(direct{1});
-        if numel(foldercontent) == 2
-            % folder exists and is empty
-            seq2img(cameras{i},start_frame, sample_size);
-        end
-    end
-    %cameraListImages{i} = cell(sample_size,1);
-    for j=start_frame:(start_frame + sample_size)
-        cameraListImages{i}{j} = imread(strcat(direct{1}, '/', num2str(j), '.png'));
-    end
-end
+cameraListImages = loadImages(cameras, image_directory, sample_size, start_frame);
 %%=========================================================
 % Plot 4 sample_size images to show detections (with bounding boxes)
 %plotDebugBoundingBoxes(cameraListImages,allDetections,start_frame,'hda');
 %%=========================================================
-% Build POM
+% Build POM (Fleuret et. al)
+% gplane = imread(floor_image);
+% gplane = imcrop(gplane,elevator_patio);
+% figure
+% new_plane = draw_elevator_patio(gplane);
+% hold on;
+% drawGrid(new_plane,0.5,'hda');
+% set(gca,'ydir','normal');
+% %%=========================================================
+% allPedIds = ground_truth;
+% %%=========================================================
+% % Get a ground truth for an experiment
+% allPedIds = computeAllPedIds(homographies, allPedIds, cameras);
+% cam57 = 1; cam58 = 2;
+% ped1 = 52; ped2 = 15;
+% cam_57_ped52 = allPedIds{cam57}{ped1}(5:137,:);
+% cam_58_ped52 = allPedIds{cam58}{ped1}(6:108,:);
+% scatter(cam_57_ped52(:,9), cam_57_ped52(:,10),4,'MarkerFaceColor',rgb('Red'),'MarkerEdgeColor',rgb('Red')); % Red
+% scatter(cam_58_ped52(:,9), cam_58_ped52(:,10),4,'MarkerFaceColor',rgb('Orange'),'MarkerEdgeColor',rgb('Orange')); % Orange
+%
+% cam_57_ped15 = allPedIds{cam57}{ped2}(26:92,:);
+% cam_58_ped15 = allPedIds{cam58}{ped2}(28:86,:);
+% scatter(cam_57_ped15(:,9), cam_57_ped15(:,10),4,'MarkerFaceColor',rgb('Blue'),'MarkerEdgeColor',rgb('Blue')); % Blue
+% scatter(cam_58_ped15(:,9), cam_58_ped15(:,10),4,'MarkerFaceColor',rgb('Purple'),'MarkerEdgeColor',rgb('Purple')); % Purple
 
-
-%%=========================================================
-gplane = imread(floor_image);
-gplane = imcrop(gplane,elevator_patio);
-figure
-new_plane = draw_elevator_patio(gplane);
-hold on;
-drawGrid(new_plane,0.5,'hda');
-set(gca,'ydir','normal');
-%%=========================================================
-allPedIds = ground_truth;
-%%=========================================================
-% Get a ground truth for an experiment
-allPedIds = computeAllPedIds(homographies, allPedIds, cameras);
-cam57 = 1; cam58 = 2;
-ped1 = 52; ped2 = 15;
-cam_57_ped52 = allPedIds{cam57}{ped1}(5:137,:);
-cam_58_ped52 = allPedIds{cam58}{ped1}(6:108,:);
-scatter(cam_57_ped52(:,9), cam_57_ped52(:,10),4,'MarkerFaceColor',rgb('Red'),'MarkerEdgeColor',rgb('Red')); % Red
-scatter(cam_58_ped52(:,9), cam_58_ped52(:,10),4,'MarkerFaceColor',rgb('Orange'),'MarkerEdgeColor',rgb('Orange')); % Orange
-
-cam_57_ped15 = allPedIds{cam57}{ped2}(26:92,:);
-cam_58_ped15 = allPedIds{cam58}{ped2}(28:86,:);
-scatter(cam_57_ped15(:,9), cam_57_ped15(:,10),4,'MarkerFaceColor',rgb('Blue'),'MarkerEdgeColor',rgb('Blue')); % Blue
-scatter(cam_58_ped15(:,9), cam_58_ped15(:,10),4,'MarkerFaceColor',rgb('Purple'),'MarkerEdgeColor',rgb('Purple')); % Purple
-
-figure; hold on; %draw_elevator_patio(gplane);
-
-% scatter(cam_57_ped52(1:2,9), cam_57_ped52(1:2,10),'MarkerFaceColor',rgb('Red'),'MarkerEdgeColor',rgb('Red')); % Red
-% scatter(cam_58_ped52(1:2,9), cam_58_ped52(1:2,10),'MarkerFaceColor',rgb('Orange'),'MarkerEdgeColor',rgb('Orange')); % Orange
-% scatter(cam_57_ped15(1:2,9), cam_57_ped15(1:2,10),'MarkerFaceColor',rgb('Blue'),'MarkerEdgeColor',rgb('Blue')); % Blue
-% scatter(cam_58_ped15(1:2,9), cam_58_ped15(1:2,10),'MarkerFaceColor',rgb('Purple'),'MarkerEdgeColor',rgb('Purple')); % Purple
-scatter(cam_57_ped15(2,9), cam_57_ped15(2,10),'MarkerFaceColor',rgb('Blue'),'MarkerEdgeColor',rgb('Blue')); % Blue
-scatter(cam_58_ped15(2,9), cam_58_ped15(2,10),'MarkerFaceColor',rgb('Purple'),'MarkerEdgeColor',rgb('Purple')); % Purple
-scatter(cam_57_ped52(2,9), cam_57_ped52(2,10),'MarkerFaceColor',rgb('Red'),'MarkerEdgeColor',rgb('Red')); % Red
-scatter(cam_58_ped52(2,9), cam_58_ped52(2,10),'MarkerFaceColor',rgb('Orange'),'MarkerEdgeColor',rgb('Orange')); % Orange
-% Compute scores
-previous_test_targets = [cam_57_ped52(1,:);cam_58_ped52(1,:);cam_57_ped15(1,:);cam_58_ped15(1,:)];
-test_targets = [cam_57_ped52(2,:);cam_58_ped52(2,:);cam_57_ped15(2,:);cam_58_ped15(2,:)];
-% TODO We have 4 detections (2 targets) so score is 4x4, generalize
-Scores = zeros(4,4);
-assignmentAlgo = 'jonker_volgenant';
-[assignments, P] = solve_assignment(Scores, test_targets, previous_test_targets, cameraListImages, assignmentAlgo);
-
-%%==============================================================================
-% After the best assignments, recompute homography matrix
-% Take the mean of the assigned points, this will be the input to the computation
-pedestrian_points = zeros(size(test_targets,1),4 + size(test_targets,2));
-for i=1:size(pedestrian_points,1)
-    couple = [test_targets(i,:); test_targets(assignments(i),:)];
-    pedestrian_points(i,:) = [couple(1,9:10) couple(2,9:10) test_targets(i,:)];
-end
-plot(pedestrian_points(:,1),pedestrian_points(:,2),'ko');
-% Using the mean points and the original camera space points calculate both homographies
-new_Hs = cell(length(cameras),1);
-rho_r = 3;
-rho_m = 1;
-% Method 1 -- fix one of the transformations H1 and correct the other
-% Method 2 -- calculate H1 and H2 iteratively, fixing one and then the other
-new_Hs{1} = homographies{1};
-% --------------------------------------------------------------------------
-id = 2;
-[pin, pout] = aux_homo_debug(id, cameras, outlier_removal_regions, ground_plane_regions, pedestrian_points, rho_r, rho_m);
-tic
-new_Hs{id} = solve_homography(pin',pout','svd');
-homography_time = toc;
-disp(strcat('Homography computation takes: ', num2str(homography_time)));
-comparison_second_homo = new_Hs{id};
-% --------------------------------------------------------------------------
-id = 1;
-[pin, pout] = aux_homo_debug(id, cameras, outlier_removal_regions, ground_plane_regions, pedestrian_points, rho_r, rho_m);
-tic
-new_Hs{id} = solve_homography(pin',pout','svd');
-homography_time = toc;
-disp(strcat('Homography computation takes: ', num2str(homography_time)));
-comparison_first_homo = new_Hs{id};
-%--------------------------------------------------------------------------
-homography2 = new_Hs{2};
-% --------------------------------------------------------------------------
-% Recalculate points using the new second Homography
-for n=1:size(pedestrian_points,1)
-    if pedestrian_points(n,5) == cameras{id}
-        xi = pedestrian_points(n,7) + pedestrian_points(n,9)/2;
-        yi = pedestrian_points(n,8) + pedestrian_points(n,10);
-        a = new_Hs{2} * [xi; yi; 1];
-        a = a./a(3);
-        pedestrian_points(n,1) = a(1);
-        pedestrian_points(n,2) = a(2);
-    end
-end
-id = 2;
-[pin, pout] = aux_homo_debug(id, cameras, outlier_removal_regions, ground_plane_regions, pedestrian_points, rho_r, rho_m);
-tic
-new_Hs{id} = solve_homography(pin',pout','svd');
-homography_time = toc;
-disp(strcat('Homography computation takes: ', num2str(homography_time)));
-
-% Recalculate points using the new first Homography
-for n=1:size(pedestrian_points,1)
-    if pedestrian_points(n,5) == cameras{id}
-        xi = pedestrian_points(n,7) + pedestrian_points(n,9)/2;
-        yi = pedestrian_points(n,8) + pedestrian_points(n,10);
-        a = new_Hs{1} * [xi; yi; 1];
-        a = a./a(3);
-        pedestrian_points(n,1) = a(1);
-        pedestrian_points(n,2) = a(2);
-    end
-end
-id = 1;
-[pin, pout] = aux_homo_debug(id, cameras, outlier_removal_regions, ground_plane_regions, pedestrian_points, rho_r, rho_m);
-tic
-new_Hs{id} = solve_homography(pin',pout','svd');
-homography_time = toc;
-disp(strcat('Homography computation takes: ', num2str(homography_time)));
-%%==============================================================================
-% Plot new point estimates
-new_estimate1 = new_Hs{1} * [test_targets(3,3)+test_targets(3,5)/2; test_targets(3,4)+test_targets(3,6); 1];
-
-new_estimate1_before_iteration = comparison_first_homo * [test_targets(3,3)+test_targets(3,5)/2; test_targets(3,4)+test_targets(3,6); 1];
-
-new_estimate2 = new_Hs{2} * [test_targets(4,3)+test_targets(4,5)/2; test_targets(4,4)+test_targets(4,6); 1];
-
-new_estimate2_before_iteration = comparison_second_homo * [test_targets(4,3)+test_targets(4,5)/2; test_targets(4,4)+test_targets(4,6); 1];
-
-new_estimate1 = new_estimate1./new_estimate1(3);
-new_estimate2 = new_estimate2./new_estimate2(3);
-
-new_estimate2_before_iteration = new_estimate2_before_iteration./new_estimate2_before_iteration(3);
-
-new_estimate1_before_iteration = new_estimate1_before_iteration./new_estimate1_before_iteration(3);
-
-plot(new_estimate1_before_iteration(1), new_estimate1_before_iteration(2), 'Marker', '*','Color',rgb('DarkGreen'));
-plot(new_estimate2_before_iteration(1), new_estimate2_before_iteration(2), 'Marker', '*', 'Color', rgb('DarkRed'));
-
-plot(new_estimate1(1),new_estimate1(2), 'Marker', '*', 'Color',rgb('LightGreen'));
-plot(new_estimate2(1), new_estimate2(2), 'Marker', '*','Color',rgb('LightSalmon'));
-
-plot([new_estimate2_before_iteration(1) new_estimate2(1)],[new_estimate2_before_iteration(2) new_estimate2(2)],'Color',rgb('Red'));
-
-new_estimate2_otherped = new_Hs{2} * [test_targets(2,3)+test_targets(2,5)/2; test_targets(2,4)+test_targets(2,6); 1];
-new_estimate2_otherped = new_estimate2_otherped./new_estimate2_otherped(3);
-plot(new_estimate2_otherped(1),new_estimate2_otherped(2),'y*');
-% Plot new ground_plane_regions estimates
-new_reg = cell(length(cameras),1);
-colors_new = {'Salmon','Lime'};
-colors_orig = {'Red','Green'};
-title(strcat('RHO_M: ', num2str(rho_m),',RHO_R: ', num2str(rho_r)));
-for i=2:length(cameras) % TODO Doing it only for camera 2 for debug
-    new_reg{i} = new_Hs{i} * transpose(horzcat(outlier_removal_regions{i}, ones(size(outlier_removal_regions{i},1),1)));
-    new_reg{i}(1,:) = new_reg{i}(1,:)./new_reg{i}(3,:);
-    new_reg{i}(2,:) = new_reg{i}(2,:)./new_reg{i}(3,:);
-    new_reg{i} = transpose(new_reg{i}(1:2,:));
-    drawPoly(new_reg{i}, colors_new{i}, 0.5, false);
-    drawPoly(ground_plane_regions{i}, colors_orig{i}, 0.5, false);
-end
-
-command;
 %%=========================================================
 % Global iteration loop
-k = g_candidates^2; % Candidates per target
-start_frames = [1139 1030]; num_frames = [2 2]; % NOTE DEBUG FOR NOW
+k = g_candidates ^ 2; % Candidates per target
+start_frames = [1139 1030];
+num_frames = [2 2];
 %---------------------------------------------------------------------------
 for f = start_frames(id):(start_frames(id) + (num_frames(id)-1))
 
@@ -254,7 +106,7 @@ for f = start_frames(id):(start_frames(id) + (num_frames(id)-1))
     %---------------------------------------------------------------------------
     % Create global arrays and matrices
     [c_a, c_m, c_nm] = deal(zeros(n,1));
-    [Csp, Cg] = deal(zeros(n));
+    Cg = zeros(n,n)
     %---------------------------------------------------------------------------
     % Compute global Csp
 

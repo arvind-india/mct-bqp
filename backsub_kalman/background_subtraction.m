@@ -1,8 +1,7 @@
 setCaptureParams_campus2;
-setDetectionParams_campus2;
-obj = setupSystemObjects('alameda.mp4'); % Create System objects used for reading video, detecting moving objects, and displaying the results.
-sample = 100;
-show_frame = 74; % Frame(s) to show
+obj = setupSystemObjects('alameda.mp4', resolutions); % Create System objects used for reading video, detecting moving objects, and displaying the results.
+sample = 2000;
+show_frame = 871; % Frame(s) to show
 detections = cell(sample,1);
 % Detect moving objects.
 %while ~isDone(obj.reader)
@@ -12,9 +11,11 @@ for i=1:sample
     detections{i} = [centroids, bboxes];
     if i == show_frame
         figure
+        %waitforbuttonpress;
+        title(strcat('Frame: ', num2str(i)));
         hold on;
         imshow(frame);
-        drawBBs(detections{i}, rgb('Lime'))
+        drawBBs(detections{i}, rgb('Orange'))
     end
 end
 
@@ -27,7 +28,7 @@ function [centroids, bboxes, mask] = detectObjects(frame, obj)
     [~, centroids, bboxes] = obj.blobAnalyser.step(mask); % Perform blob analysis to find connected components.
 end
 
-function obj = setupSystemObjects(video_sequence)
+function obj = setupSystemObjects(video_sequence, resolutions)
     % Create objects for reading a video from a file, drawing the tracked objects in each frame, and playing the video.
     obj.reader = vision.VideoFileReader(video_sequence);  % Create a video file reader.
 
@@ -41,5 +42,13 @@ function obj = setupSystemObjects(video_sequence)
 
     % Connected groups of foreground pixels are likely to correspond to moving
     % objects.  The blob analysis System object is used to find such groups (called 'blobs' or 'connected components'), and compute their characteristics, such as area, centroid, and the bounding box.
-    obj.blobAnalyser = vision.BlobAnalysis('BoundingBoxOutputPort', true, 'AreaOutputPort', true, 'CentroidOutputPort', true, 'MinimumBlobArea', 400);
+    obj.blobAnalyser = vision.BlobAnalysis('BoundingBoxOutputPort', true, 'AreaOutputPort', true, 'CentroidOutputPort', true, 'MinimumBlobArea', 200);
+end
+
+function drawBBs(dets, bb_color)
+    bb_linewidth = 2;
+    for k = 1:size(dets,1)
+        hold on
+        rectangle('Position',dets(k,3:6),'EdgeColor', bb_color, 'LineWidth', bb_linewidth);
+    end
 end

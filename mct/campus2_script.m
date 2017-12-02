@@ -12,12 +12,13 @@ set(0,'DefaultFigureVisible',show_images);
 % Load images
 cameraListImages = cell(2,1);
 % NOTE: this was in a wrong order, we had to do our own cust bbGt function
-%for i=1:length(cameras)
-%    cameraListImages{i} = bbGt('getFiles',image_directories(i));
-%end
 for i=1:length(cameras)
-    cameraListImages{i} = bb_getImages(image_directories{i});
+    cameraListImages{i} = bbGt('getFiles',image_directories(i));
 end
+%for i=1:length(cameras)
+%    cameraListImages{i} = loadImages(cameras, image_directories{i}, 0, 0, 'campus2');
+%end
+
 % Use the trained Neural Network to do pedestrian detection
 %sample_size = 300;
 sample_size = 12;
@@ -34,7 +35,6 @@ end
 % Plot images to show detections (with bounding boxes)
 figure; show_detections = 'slideshow';
 if strcmp('slideshow', show_detections) == 1
-
     start_frame = 1;
     for start_frame = start_frame:4:sample_size
         waitforbuttonpress;
