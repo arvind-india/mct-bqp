@@ -6,9 +6,9 @@ function allDetections = filterCNN(allDetections, inplanes)
     %Load the detections file
     for id=1:length(cameras)
         if use_GPU == 1
-            filename = ['~/hda_code/CAMPUS_II_PEDESTRIAN_TRACKING/software/rcnn/DeepPed/campus2_code/campus2_data/GPU/CNNdets_' sprintf('%02d', id) '.txt'];
+            filename = ['~/mct-bqp/campus2_data/GPU/CNNdets_' sprintf('%02d', id) '.txt'];
         else
-            filename = ['~/hda_code/CAMPUS_II_PEDESTRIAN_TRACKING/software/rcnn/DeepPed/campus2_code/campus2_data/CPU/CNNdets_' sprintf('%02d', id) '.txt'];
+            filename = ['~/mct-bqp/campus2_code/campus2_data/CPU/CNNdets_' sprintf('%02d', id) '.txt'];
         end
         fileID = fopen(filename);
         file = textscan(fileID,'%d%d%f%f%f%f%f','Delimiter',',');

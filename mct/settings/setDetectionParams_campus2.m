@@ -51,6 +51,11 @@ global NMS_maxoverlap
 NMS_maxoverlap = [0.9 0.9];
 
 %-------------------------------------------------------------------------------
+global cpu_results
+cpu_results = '~/mct-bqp/campus2_data/CPU/CNNdets_';
+
+global gpu_results
+gpu_results = '~/mct-bqp/campus2_data/GPU/CNNdets_';
 
 global use_GPU
 use_GPU = [0 0];

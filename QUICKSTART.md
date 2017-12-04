@@ -12,6 +12,7 @@
 	sudo apt install nvidia-cuda-toolkit
 	nvcc --version
 ```
+This will succeed but from my experience won't give you good enough results. Follow this http://www.pradeepadiga.me/blog/2017/03/22/installing-cuda-toolkit-8-0-on-ubuntu-16-04/ to get a working solution. You may install cuda-9.0.
 
 3. ATLAS/BLAS:
 ```
@@ -26,7 +27,31 @@ If you opt to build from source you may have something that will report throtlin
 ```
 	sudo apt install python-dev
 ```
-* In `caffe-0.999-master` take a look and edit `Makefile.config` details. Be specially careful where you point caffe to (matlab directory).
+* In `caffe-0.999-master` take a look and edit `Makefile.config` details (rename the example to `Makefile.config`). Be specially careful where you point caffe to (matlab directory, should be in `usr/local/MATLAB`).
+
+* Before you start be careful to point also to the correct place where you previously installed CUDA. Caffe 0.99 has a couple of bugs we have to fix first: hdf5, old CUDA architectures and signbit. First, execute this script https://github.com/BVLC/caffe/issues/2347. Then:
+```
+cd /usr/lib/x86_64-linux-gnu
+sudo ln -s libhdf5_serial.so.8.0.2 libhdf5.so
+sudo ln -s libhdf5_serial_hl.so.8.0.2 libhdf5_hl.so
+```
+If this symlink doesn't work try:
+```
+sudo ln -s /usr/lib/x86_64-linux-gnu/libhdf5_serial.so.10 /usr/lib/x86_64-linux-gnu/libhdf5.so
+sudo ln -s /usr/lib/x86_64-linux-gnu/libhdf5_serial_hl.so.10 /usr/lib/x86_64-linux-gnu/libhdf5_hl.so
+```
+Then remove both lines that start with `-gencode arch=compute_20`.
+Then edit `caffe-0.999/include/caffe/util/math_functions.hpp` and apply the following changes. From:
+```
+using std::signbit;
+DEFINE_CAFFE_CPU_UNARY_FUNC(sgnbit, y[i] = signbit(x[i])); 
+```
+to:
+```
+// using std::signbit;
+DEFINE_CAFFE_CPU_UNARY_FUNC(sgnbit, y[i] = std::signbit(x[i]));
+```
+In Makefile change `CXXLIBS="$$CXXLIBS $(LDFLAGS)" -o $@` to `CXXLIBS="$$CXXLIBS $(STATIC_NAME) $(LDFLAGS)" -output $@`. Even if you get warnings, if you get `MEX compiled successfully` it worked.
 
 * Then follow the steps (if you get key=-2 at the end it means everything was installed correctly)
 ```
@@ -78,5 +103,3 @@ and run `make clean`, `make all` again in the caffe-master directory. Another yo
 WARNING: This should already be resolved, but if you see the following and MATLAB segfaults with `[libprotobuf ERROR google/protobuf/text_format.cc:274] Error parsing text-format caffe.NetParameter: 7:7: Message type "caffe.NetParameter" has no field named "layer". WARNING: Logging before InitGoogleLogging() is written to STDERR F0630 15:03:01.788671  6076 upgrade_proto.cpp:571] Check failed: ReadProtoFromTextFile(param_file, param) Failed to parse NetParameter file: model-defs/alexnet_deploy_fc7_CAFFE.prototxt` replace the `rcnn/model-defs/alexnet_deploy_fc7_CAFFE.prototxt` with the one in `DeepPed/mode_def`.
 
 * To test the gpu CUDA support change to `use_gpu=1` and run `deepPed_demo` again. Make sure your GPU has enough memory! If it does not you may get an error like `Check failed: error == cudaSuccess (2 vs 0)`. To fix this you have to reduce the batchsize. To do this you'll have to find `rcnn/model-defs/alexnet_deploy_fc7_CAFFE.prototxt` in the original neural network and change the input dimensions to half of what they are (keep the one that is 3 unchanged). This implies the finetuned SVM in the code has to be changed as well in `CNNdetect.m`, and you'll end up with half the number of features but something that can run.
-
-Any doubts mail me at pedro.f.abreu@ist.utl.pt.

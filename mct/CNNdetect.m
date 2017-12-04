@@ -18,11 +18,11 @@ function allDetections = CNNdetect(cameraListImages,sample_size)
         %==========================================================
         directory_not_exists = 0;
         if use_GPU(id) == 1
-            if ~exist(['~/hda_code/CAMPUS_II_PEDESTRIAN_TRACKING/software/rcnn/DeepPed/campus2_code/campus2_data/GPU/CNNdets_' sprintf('%02d', id) '.txt'], 'file')
+            if ~exist([gpu_results sprintf('%02d', id) '.txt'], 'file')
                 directory_not_exists = 1;
             end
         else
-            if ~exist(['~/hda_code/CAMPUS_II_PEDESTRIAN_TRACKING/software/rcnn/DeepPed/campus2_code/campus2_data/CPU/CNNdets_' sprintf('%02d', id) '.txt'], 'file')
+            if ~exist([cpu_results sprintf('%02d', id) '.txt'], 'file')
                 directory_not_exists = 1;
             end
         end
@@ -61,9 +61,9 @@ function allDetections = CNNdetect(cameraListImages,sample_size)
             disp(['Camera ' sprintf('%d',id) ' is done']);
             %Transform detections to a file so we can load faster in the future
             if use_GPU(id) == 1
-        	       fileID = fopen(['~/hda_code/CAMPUS_II_PEDESTRIAN_TRACKING/software/rcnn/DeepPed/campus2_code/campus2_data/GPU/CNNdets_' sprintf('%02d', id) '.txt'],'w');
+        	       fileID = fopen([gpu_results sprintf('%02d', id) '.txt'],'w');
             else
-        	       fileID = fopen(['~/hda_code/CAMPUS_II_PEDESTRIAN_TRACKING/software/rcnn/DeepPed/campus2_code/campus2_data/CPU/CNNdets_' sprintf('%02d', id) '.txt'],'w');
+        	       fileID = fopen([cpu_results sprintf('%02d', id) '.txt'],'w');
             end
         	formatSpec = '%d,%d,%4.5f,%4.5f,%4.5f,%4.5f,%1.5f\n';
         	for i=1:sample_size
@@ -75,9 +75,9 @@ function allDetections = CNNdetect(cameraListImages,sample_size)
         else
             % load the file
             if use_GPU(id) == 1
-        	       filename = ['~/hda_code/CAMPUS_II_PEDESTRIAN_TRACKING/software/rcnn/DeepPed/campus2_code/campus2_data/GPU/CNNdets_' sprintf('%02d', id) '.txt'];
+        	       filename = [gpu_results sprintf('%02d', id) '.txt'];
             else
-        	       filename = ['~/hda_code/CAMPUS_II_PEDESTRIAN_TRACKING/software/rcnn/DeepPed/campus2_code/campus2_data/CPU/CNNdets_' sprintf('%02d', id) '.txt'];
+        	       filename = [gpu_results sprintf('%02d', id) '.txt'];
             end
             fileID = fopen(filename);
         	file = textscan(fileID,'%d%d%f%f%f%f%f','Delimiter',',');
@@ -108,8 +108,8 @@ function [SVM, detector, rcnn_model, cl2, PersonW, PersonB] = loadCNN(LDCF_cascT
 
     % load the trained SVM
     SVM = load('data/rcnn_models/DeepPed/SVM_finetuned_alexnet.mat');
-    %PersonW = SVM.W; %Feature weights for scoring
-    PersonW = SVM.W(1:end/2); %Dirty hack, the only real solution to this should be to get a better GPU than this crappy GTX960
+    PersonW = SVM.W; %Feature weights for scoring
+    %PersonW = SVM.W(1:end/2; %Dirty hack, the only real solution to this should be to get a better GPU than this crappy GTX960
     PersonB = SVM.b; %Constant scoring factor
 
     % load the trained svm of level 2
