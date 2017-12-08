@@ -3,20 +3,16 @@ setCaptureParams_hda_elevator;
 % Set params of the calibration
 setDetectionParams_hda_elevator;
 % Set parameters for the tracker
-warning off;
 setTrackerParams;
-% TODO: eliminating warnings of newline inbuilt function with this
-warning on;
 % Pick if you want to display debug images or not
-show_images = 'on';
-debug_plots = false;
+show_images = 'on'; debug_plots = false;
 set(0,'DefaultFigureVisible',show_images);
 %%=========================================================
 allDetections = ACFdetect();
 % In allDetections get the first ground_truth pedestrian id that is not 999 and filter using the occlusion bit
 allDetections = filterACFInria(allDetections); % If you want more than 1 ground_truth label for each ped you can change it here
 %%=========================================================
-% Plot detections of all peds in both cameras (we consider that peds are represented by the middle of their BB's)
+% Plot detections of all peds in both cameras (we consider that peds are represented by the bottom middle of their BB's)
 %plotDetectionsCameraSpace(allDetections,cameraListImages,'hda');
 %%=========================================================
 % Load homographies, these homographies where obtained via the use of cp2tform
@@ -58,18 +54,10 @@ end
 sample_size = 500; % Number of frames
 start_frame = 1000; % Frames to start collecting images
 cameraListImages = loadImages(cameras, image_directory, sample_size, start_frame);
+
 %%=========================================================
 % Plot 4 sample_size images to show detections (with bounding boxes)
 %plotDebugBoundingBoxes(cameraListImages,allDetections,start_frame,'hda');
-%%=========================================================
-% Build POM (Fleuret et. al)
-% gplane = imread(floor_image);
-% gplane = imcrop(gplane,elevator_patio);
-% figure
-% new_plane = draw_elevator_patio(gplane);
-% hold on;
-% drawGrid(new_plane,0.5,'hda');
-% set(gca,'ydir','normal');
 % %%=========================================================
 % allPedIds = ground_truth;
 % %%=========================================================
@@ -94,10 +82,6 @@ start_frames = [1139 1030];
 num_frames = [2 2];
 %---------------------------------------------------------------------------
 for f = start_frames(id):(start_frames(id) + (num_frames(id)-1))
-
-    % Map detections at f to the ground plane using homographies
-
-    % Solve target coupling in the overlap zones
     %---------------------------------------------------------------------------
     n = 0; % All targets in all cameras
     for id = 1:length(cameras)
@@ -106,17 +90,23 @@ for f = start_frames(id):(start_frames(id) + (num_frames(id)-1))
     %---------------------------------------------------------------------------
     % Create global arrays and matrices
     [c_a, c_m, c_nm] = deal(zeros(n,1));
-    Cg = zeros(n,n)
-    %---------------------------------------------------------------------------
-    % Compute global Csp
-
-    % Compute global Cg
+    Cg = zeros(n,n);
+    % Map detections at f to the ground plane using homographies
 
     %---------------------------------------------------------------------------
-    %for id = 1:length(cameras)
-    for id = 1:1
+    % Pedestrian association
+
+
+    %---------------------------------------------------------------------------
+    % Compute global cues - grouping (we ignore spatial proximity cues)
+
+    % Get the next frame and its detections and compute the assignments of our targets
+
+    %---------------------------------------------------------------------------
+    % Compute local cues - motion and appearance
+    for id = 1:length(cameras)
         % NOTE: l prefix means local
-        disp(['Tracking in frame:  ' sprintf('%d',f) '  @  camera:  ' sprintf('%d',cameras{id}) '...']);
+        disp(['Searching in frame:  ' sprintf('%d',f) ' in  camera:  ' sprintf('%d',cameras{id}) ' for possible assignments...']);
         l_n = size(allDetections{id}{f},1);
         disp(['Number of targets in this frame for this camera: ' sprintf('%d', l_n)]);
         prev_n = 0;
@@ -134,18 +124,16 @@ for f = start_frames(id):(start_frames(id) + (num_frames(id)-1))
         % Neighbourhood motion Constraint - all targets are neighbours since we are not in a crowded scenery
         %l_c_nm = neighbourhoodMotionConstraint(l_n,k,f,fps,allDetections,predictions,past_observations);
     end
+
     %---------------------------------------------------------------------------
+    % Prepare inputs for Frank Wolfe
     [A,b,Aeq,Beq,labels] = FW_preamble(n,k,c_a,c_m,c_nm,Csp,Cg);
-
-    % Solve the problem
+    % Solve the problem using Frank Wolfe
     [minx,minf,x_t,f_t,t1_end] = FW_crowd_wrapper(A,b, Aeq, Beq, labels); % minx is the value we want
-
     % Get chunk of k candidates for target i and see which one was picked
     optimization_results = reshape(minx,k,[]);
 
     %---------------------------------------------------------------------------
-
-
 end
 
 figure
@@ -153,5 +141,4 @@ testped = 2;
 for i=1:k
     subplot(sqrt(k),sqrt(k),i)
     imshow(allbb_imgs{testped}{i})
-
 end

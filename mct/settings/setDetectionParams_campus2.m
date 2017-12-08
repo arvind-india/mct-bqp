@@ -34,7 +34,7 @@ LDCF_rescale = [1.0 1.0];
 
 % .pNms       - [] params for non-maximal suppression (see bbNms.m)
 global pNMS_overlap
-pNMS_overlap = [0.9 0.9];
+pNMS_overlap = [0.9 1.0];
 
 % .stride     - [] spatial stride between detection windows
 global LDCF_stride
@@ -48,9 +48,12 @@ score_threshold = [0.6 0.5];
 
 global NMS_maxoverlap
 % 0.25 0.5 0.75 0.9
-NMS_maxoverlap = [0.9 0.9];
+NMS_maxoverlap = [0.9 1.0];
 
 %-------------------------------------------------------------------------------
+global order
+order = 'toolbox';
+
 global cpu_results
 cpu_results = '~/mct-bqp/campus2_data/CPU/CNNdets_';
 

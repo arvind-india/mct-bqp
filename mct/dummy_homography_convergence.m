@@ -68,7 +68,7 @@ for reps = 1:N
     W_d = wgn(size(n_cam2_gpdetections,2),size(n_cam2_gpdetections,1),power);
     n_H1 = solve_homography(vertcat(repmat(cam1_region,rho_r,1), repmat(cam1_camdetections',rho_m,1)), ...
                           vertcat(repmat(n_cam1_gpregion, rho_r,1), repmat(n_cam2_gpdetections',rho_m,1)), 'svd');
-    
+
     % Compute new cam2 ground plane regions and detections with n_H2
     n_cam2_gpdetections = H(n_H2,cam2_camdetections); n_c2(reps+1,:) = n_cam2_gpdetections';
     n_cam2_gpregion = cw(reg2gnd(cam2_region, n_H2));

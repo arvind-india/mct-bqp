@@ -6,9 +6,9 @@ function allDetections = filterCNN(allDetections, inplanes)
     %Load the detections file
     for id=1:length(cameras)
         if use_GPU == 1
-            filename = ['~/mct-bqp/campus2_data/GPU/CNNdets_' sprintf('%02d', id) '.txt'];
+            filename = [gpu_results sprintf('%02d', id) '.txt'];
         else
-            filename = ['~/mct-bqp/campus2_code/campus2_data/CPU/CNNdets_' sprintf('%02d', id) '.txt'];
+            filename = [cpu_results sprintf('%02d', id) '.txt'];
         end
         fileID = fopen(filename);
         file = textscan(fileID,'%d%d%f%f%f%f%f','Delimiter',',');
@@ -46,11 +46,11 @@ function allDetections = filterCNN(allDetections, inplanes)
     %---------------------------------------------------------------------------
     %Try to correct individual systematic mistakes that keep cropping up and are systematic
     systematic_wrong_detections = {};
-    filename = '~/hda_code/CAMPUS_II_PEDESTRIAN_TRACKING/software/rcnn/DeepPed/campus2_code/campus2_data/cam_alameda_systematicFP.txt';
+    filename = '~/mct-bqp/campus2_data/cam_alameda_systematicFP.txt';
     delimiterIn = ' ';
     headerlinesIn = 1;
     systematic_wrong_detections{1} = importdata(filename,delimiterIn,headerlinesIn); systematic_wrong_detections{1} = systematic_wrong_detections{1}.data;
-    filename = '~/hda_code/CAMPUS_II_PEDESTRIAN_TRACKING/software/rcnn/DeepPed/campus2_code/campus2_data/cam_central_systematicFP.txt';
+    filename = '~/mct-bqp/campus2_data/cam_central_systematicFP.txt';
     systematic_wrong_detections{2} = importdata(filename,delimiterIn,headerlinesIn); systematic_wrong_detections{2} = systematic_wrong_detections{2}.data;
     error_variance = [10 10]; %Means that it checks for any bb's within this range (in pixels)
     for id=1:length(cameras)

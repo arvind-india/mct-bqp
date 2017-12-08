@@ -11,15 +11,18 @@ set(0,'DefaultFigureVisible',show_images);
 %%=========================================================
 % Load images
 cameraListImages = cell(2,1);
-% NOTE: this was in a wrong order, we had to do our own cust bbGt function
-for i=1:length(cameras)
-    cameraListImages{i} = bbGt('getFiles',image_directories(i));
+if strcmp(order, 'toolbox')
+  % NOTE: this was in a wrong order, we had to do our own cust bbGt function
+  for i=1:length(cameras)
+      cameraListImages{i} = bbGt('getFiles',image_directories(i));
+  end
+elseif strcmp(order, 'cardinal')
+  for i=1:length(cameras)
+      cameraListImages{i} = loadImages(cameras, image_directories{i}, 0, 0, 'campus2');
+  end
 end
-%for i=1:length(cameras)
-%    cameraListImages{i} = loadImages(cameras, image_directories{i}, 0, 0, 'campus2');
-%end
 
-% Use the trained Neural Network to do pedestrian detection
+% Use the trained Neural Network to do pedestrian detection (transfer learning)
 %sample_size = 300;
 sample_size = 12;
 allDetections = CNNdetect(cameraListImages, sample_size);
@@ -57,13 +60,6 @@ plotDetectionsCameraSpace(cameraListImages,allDetections,'campus_2');
 %inplanes{1} = [1 436; 1022 409; 1022 766; 0 766]; % Alameda cam
 %inplanes{2} = [3 391; 328 391; 384 295; 475 295; 988 550; 930 622; 1 688]; % Central cam
 ground_plane_regions = computeGroundPlaneRegions(inplanes, homographies, length(cameras), 'campus_2');
-
-%%==============================================================
-% POM
-figure
-hold on;
-gplane = [-1000 1000 1000 -1000; 400 400 -1200 -1200];
-drawGrid(gplane, 50, 'campus_2');
 
 %%==============================================================
 
