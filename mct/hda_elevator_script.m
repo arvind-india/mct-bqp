@@ -53,92 +53,100 @@ end
 % NOTE These two following values, especially sample size are likely to be altered for the actual tracking problem for debug reasons
 sample_size = 500; % Number of frames
 start_frame = 1000; % Frames to start collecting images
-cameraListImages = loadImages(cameras, image_directory, sample_size, start_frame);
+cameraListImages = loadImages(cameras, image_directory, sample_size, start_frame, 'hda');
 
 %%=========================================================
 % Plot 4 sample_size images to show detections (with bounding boxes)
 %plotDebugBoundingBoxes(cameraListImages,allDetections,start_frame,'hda');
-% %%=========================================================
-% allPedIds = ground_truth;
-% %%=========================================================
-% % Get a ground truth for an experiment
-% allPedIds = computeAllPedIds(homographies, allPedIds, cameras);
-% cam57 = 1; cam58 = 2;
-% ped1 = 52; ped2 = 15;
-% cam_57_ped52 = allPedIds{cam57}{ped1}(5:137,:);
-% cam_58_ped52 = allPedIds{cam58}{ped1}(6:108,:);
-% scatter(cam_57_ped52(:,9), cam_57_ped52(:,10),4,'MarkerFaceColor',rgb('Red'),'MarkerEdgeColor',rgb('Red')); % Red
-% scatter(cam_58_ped52(:,9), cam_58_ped52(:,10),4,'MarkerFaceColor',rgb('Orange'),'MarkerEdgeColor',rgb('Orange')); % Orange
-%
-% cam_57_ped15 = allPedIds{cam57}{ped2}(26:92,:);
-% cam_58_ped15 = allPedIds{cam58}{ped2}(28:86,:);
-% scatter(cam_57_ped15(:,9), cam_57_ped15(:,10),4,'MarkerFaceColor',rgb('Blue'),'MarkerEdgeColor',rgb('Blue')); % Blue
-% scatter(cam_58_ped15(:,9), cam_58_ped15(:,10),4,'MarkerFaceColor',rgb('Purple'),'MarkerEdgeColor',rgb('Purple')); % Purple
-
+% %%=======================================================
+% Get a ground truth for an experiment, use RunToVisualize to see these
+allPedIds = ground_truth;
+allPedIds = computeAllPedIds(homographies, allPedIds, cameras);
+ped22 = {allPedIds{1}{22}(145:166,:); allPedIds{2}{22}(73:90,:)};
+ped24 = {allPedIds{1}{24}(77:79,:); allPedIds{2}{24}(42:44,:)}
 %%=========================================================
 % Global iteration loop
 k = g_candidates ^ 2; % Candidates per target
-start_frames = [1139 1030];
-num_frames = [2 2];
+start_frames = [1336 1200];
+num_frames = [30 30];
 %---------------------------------------------------------------------------
-for f = start_frames(id):(start_frames(id) + (num_frames(id)-1))
+for f = 1:(num_frames-1)
     %---------------------------------------------------------------------------
-    n = 0; % All targets in all cameras
-    for id = 1:length(cameras)
-        n = n + size(allDetections{id}{f},1);
+    n = 0; % Number of targets in all cameras
+    targs = {} % Actual targets from both cameras
+    for c = 1:length(cameras)
+        n = n + size(allDetections{c}{start_frames(c)+f},1);
+        targs{c} = allDetections{c}{start_frames(c)+f};
+        % Map targets at frame f to the ground plane using homographies
+        for i=1:size(targs{c},1)
+            targ = targs{c};
+            t = H(homographies{c},[targ(3)+targ(5)/2; targ(4)+targ(6)]);
+            targs{c} = [targ(1) targ(2) t(1) t(2) targ(8)];
+        end
     end
+    n1 = size(targs{1},1); n2 = size(targs{2},1);
+    %---------------------------------------------------------------------------
+    %% Pedestrian/Camera association (we do assymetric target association)
+    % TODO
+    %Scores = zeros(4,4);
+    %assignmentAlgo = 'jonker_volgenant';
+    %[assignments, P] = solve_assignment(Scores, test_targets, previous_test_targets, cameraListImages, assignmentAlgo);
+    %---------------------------------------------------------------------------
+    %% Frame association
+    % Get the next frame and its detections (i.e our candidates) for association with our targets
+    k = 0; % Number of candidates in all cameras
+    cands = {} % Candidates from both cameras
+    for c = 1:length(cameras)
+        n = n + size(allDetections{c}{start_frames(c)+(f+1)},1);
+        cands{c} = allDetections{c}{start_frames(c)+(f+1)};
+        % Map candidates at frame f to the ground plane using homographies
+        for j=1:size(cands{c},1)
+            cand = cands{c};
+            t = H(homographies{c},[cand(3)+cand(5)/2; cand(4)+cand(6)]);
+            cands{c} = [cand(1) cand(2) t(1) t(2) cand(8)];
+        end
+    end
+    k1 = size(cands{1},1); k2 = size(cands{2},1);
     %---------------------------------------------------------------------------
     % Create global arrays and matrices
-    [c_a, c_m, c_nm] = deal(zeros(n,1));
-    Cg = zeros(n,n);
-    % Map detections at f to the ground plane using homographies
+    [c_a, c_m, c_nm] = deal(zeros(n,1)); Cg = zeros(n,n);
 
     %---------------------------------------------------------------------------
-    % Pedestrian association
-
+    % Compute local cues - motion and appearance
+    for c = 1:length(cameras)
+          % Appearance cues computed locally
+    %     [c_a, allbbs, allbb_imgs] = appearanceConstraint(l_n,k,f,allDetections,cameraListImages,lambda,'naive','hda',id);
+    %     c_a(prev_n * k + 1:(prev_n * k + 1) + l_n * k) = l_c_a;
+    %
+    %     % Motion Constraint
+    %     %l_c_m = motionConstraint(l_n,k,f,fps,allDetections,predictions,past_observations);
+    %
+    %     % Neighbourhood motion Constraint - all targets are neighbours since we are not in a crowded scenery
+    %     %l_c_nm = neighbourhoodMotionConstraint(l_n,k,f,fps,allDetections,predictions,past_observations);
+    end
 
     %---------------------------------------------------------------------------
     % Compute global cues - grouping (we ignore spatial proximity cues)
 
-    % Get the next frame and its detections and compute the assignments of our targets
-
-    %---------------------------------------------------------------------------
-    % Compute local cues - motion and appearance
-    for id = 1:length(cameras)
-        % NOTE: l prefix means local
-        disp(['Searching in frame:  ' sprintf('%d',f) ' in  camera:  ' sprintf('%d',cameras{id}) ' for possible assignments...']);
-        l_n = size(allDetections{id}{f},1);
-        disp(['Number of targets in this frame for this camera: ' sprintf('%d', l_n)]);
-        prev_n = 0;
-        if id ~= 1
-            prev_n = size(allDetections{id-1}{f},1);
-        end
-
-        % Appearance cues computed locally
-        [l_c_a, allbbs, allbb_imgs] = appearanceConstraint(l_n,k,f,allDetections,cameraListImages,lambda,'naive','hda',id);
-        c_a(prev_n * k + 1:(prev_n * k + 1) + l_n * k) = l_c_a;
-
-        % Motion Constraint
-        %l_c_m = motionConstraint(l_n,k,f,fps,allDetections,predictions,past_observations);
-
-        % Neighbourhood motion Constraint - all targets are neighbours since we are not in a crowded scenery
-        %l_c_nm = neighbourhoodMotionConstraint(l_n,k,f,fps,allDetections,predictions,past_observations);
-    end
 
     %---------------------------------------------------------------------------
     % Prepare inputs for Frank Wolfe
-    [A,b,Aeq,Beq,labels] = FW_preamble(n,k,c_a,c_m,c_nm,Csp,Cg);
+    [A,b,Aeq,Beq,labels] = FW_preamble(n,k,c_a,c_m,c_nm,Cg);
     % Solve the problem using Frank Wolfe
     [minx,minf,x_t,f_t,t1_end] = FW_crowd_wrapper(A,b, Aeq, Beq, labels); % minx is the value we want
     % Get chunk of k candidates for target i and see which one was picked
     optimization_results = reshape(minx,k,[]);
 
+    kill
+    %---------------------------------------------------------------------------
+    % Use target association info to fix tracks and fix homography
+    
     %---------------------------------------------------------------------------
 end
 
-figure
-testped = 2;
-for i=1:k
-    subplot(sqrt(k),sqrt(k),i)
-    imshow(allbb_imgs{testped}{i})
-end
+% figure
+% testped = 2;
+% for i=1:k
+%     subplot(sqrt(k),sqrt(k),i)
+%     imshow(allbb_imgs{testped}{i})
+% end

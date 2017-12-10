@@ -5,9 +5,12 @@
 %  3. Add to the Matlab path the `hda_code` folder (fill in the `addpath(genpath( ... ))` ),,
 %  4. and then run MATlab script `HDA_Dataset\hda_code\visualization\ RunToVisualize.m`
 
-run ../DETECTION_REID/Computer_Specific_Dataset_Directory.m
+global hdaRootDirectory
 
-dbBrowser(hdaRootDirectory),
+hdaRootDirectory ='/home/pedro/HDA_Dataset_V1.3';
+addpath(genpath(['/home/pedro/hda_code']));
+
+dbBrowser(hdaRootDirectory)
 
 % Code originally from http://vision.ucsd.edu/~pdollar/toolbox/piotr_toolbox_V2.62.zip (Doll�r Toolbox)
 % and http://www.vision.caltech.edu/Image_Datasets/CaltechPedestrians/files/code3.0.0.zip (Doll�r Detection Code)

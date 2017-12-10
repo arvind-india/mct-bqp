@@ -44,7 +44,7 @@ Then remove both lines that start with `-gencode arch=compute_20`.
 Then edit `caffe-0.999/include/caffe/util/math_functions.hpp` and apply the following changes. From:
 ```
 using std::signbit;
-DEFINE_CAFFE_CPU_UNARY_FUNC(sgnbit, y[i] = signbit(x[i])); 
+DEFINE_CAFFE_CPU_UNARY_FUNC(sgnbit, y[i] = signbit(x[i]));
 ```
 to:
 ```
@@ -73,12 +73,13 @@ In Makefile change `CXXLIBS="$$CXXLIBS $(LDFLAGS)" -o $@` to `CXXLIBS="$$CXXLIBS
 	>> rcnn_build()
 	>> key = caffe('get_init_key')
 ```
-If you're running it with MATLAB2017 you may have to do ```export LD_PRELOAD=$LD_PRELOAD:/usr/lib/x86_64-linux-gnu/libstdc++.so.6:/usr/lib/x86_64-linux-gnu/libprotobuf.so.9```
+If you're running it with MATLAB2017 you may have to do ```export LD_PRELOAD=$LD_PRELOAD:/usr/lib/x86_64-linux-gnu/libstdc++.so.6:/usr/lib/x86_64-linux-gnu/libprotobuf.so.9``` before. Put it in your `~/.bashrc` or `~/.xinitrc` file.
 
 * Firstly try to run the demo on the CPU mode and PASCAL data (the training may take a while, be patient):
 ```
 	>> rcnn_demo('PASCAL',0)
 ```
+
 * If all goes well try the GPU version (The CPU version should work properly, however the GPU version may have several issues. One I got was a MATLAB crash followed by: `Check failed: error == cudaSuccess (8 vs. 0)  invalid device function *** Check failure stack trace: *** Killed`. To solve this add the next two lines to the Makefile.config in its section (# CUDA architecture setting: going with all of them, you may also remove the following architectures since those are to be deprecated: `CUDA_ARCH := -gencode arch=compute_20,code=sm_20 \ -gencode arch=compute_20,code=sm_21 \`). For my GPU (GTX960M I used the following):
 ```
 		-gencode arch=compute_50,code=sm_50 \

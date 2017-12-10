@@ -1,7 +1,6 @@
 function [c_a, allbbs, allbb_imgs] = appearanceConstraint(n,k,f,allDetections,cameraListImages,lambda,type,dataset,id)
-
+    %%==============================================================================
     if strcmp(dataset,'campus_2') == 1
-
         feature_vector_size = 3;
         I = eye(feature_vector_size,feature_vector_size);
         weights = zeros(feature_vector_size,n);
@@ -136,7 +135,8 @@ function [c_a, allbbs, allbb_imgs] = appearanceConstraint(n,k,f,allDetections,ca
                 w = (Z' * Z + lambda*I) \ (Z' * y);
             end
             if strcmp(type, 'hkf') == 1
-                %TODO: This can be done much more efficiently in the Fourier Domain, Zfourier=fft(Z), yfourier=fft(y), as proposed in High Speed Kernelized Correlation Filters
+                %TODO: This can be done much more efficiently in the Fourier Domain,
+                % Zfourier=fft(Z), yfourier=fft(y), as proposed in High Speed Kernelized Correlation Filters
             end
             c_a{j} = zeros(k,1);
             % According to Afshin this weight is negative

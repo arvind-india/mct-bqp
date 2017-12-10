@@ -5,11 +5,9 @@ function seq2img(camera, start_frame, end_frame)
     end
     addpath(genpath('toolbox/'));
     path(path,genpath('toolbox/'));
-    addpath(genpath('code3.2.1/'));
-    path(path,genpath('code3.2.1/'));
 
     input_seq_file = strcat('/home/pedro/HDA_Dataset_V1.3/hda_image_sequences_matlab/camera', num2str(camera), '.seq');
-    output_directory = strcat('/home/pedro/hda_code/CAMPUS_II_PEDESTRIAN_TRACKING/software/rcnn/DeepPed/campus2_code/hda_data/images/cam', num2str(camera), '/');
+    output_directory = strcat('/home/pedro/mct-bqp/hda_data/images/cam', num2str(camera), '/');
 
     skip_frame = 1;
     sr = seqIo(input_seq_file, 'reader');

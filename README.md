@@ -1,4 +1,4 @@
-# Multiple-camera tracking and pedestrian detection with BQP - v0.2
+# Multiple-camera tracking and pedestrian detection with BQP - v0.5
 
 ## Steps to install/Prerequisites:
 
@@ -17,23 +17,25 @@
 13. Run the code from the rcnn folder, run either `campus2_script` or `hda_elevator_script`
 14. Some utility functions from the [Dollar toolbox](https://github.com/pdollar/toolbox) are very useful for handling some of the data formats. This also has the ACF detector used for the HDA+ dataset.
 15. You may need to have `g++` if you wish to use some `.mex` files for faster computation.
-16. (Optional) There are some functions adapted from [vgg](http://www.robots.ox.ac.uk/~vgg/hzbook/code/) and from [Peter Kovesi](http://www.peterkovesi.com/matlabfns/) for RANSAC homography computation, if you wish to inspect them further.
+16. (Optional) There are some functions adapted from [vgg](http://www.robots.ox.ac.uk/~vgg/hzbook/code/) and from [Peter Kovesi](http://www.peterkovesi.com/matlabfns/) for RANSAC homography computation (found in /homography/ransac), if you wish to inspect them further.
 17. (Optional) [Python 2.7.13](https://www.python.org/downloads/release/python-2713/)
 
-*NOTE*: All data provided in the hda_data and campus2_data are not the actual datasets for privacy reasons but actual text results of the detections, which are useful to test the trackers. For the actual datasets see below.
+Once you have done all the above and if you have installed rcnn in the `~/rcnn` directory, run `echo "addpath(genpath('~/mct-bqp'));" >> ~/rcnn/startup.m` and that should be it. Furthermore if you wish to run `campus2_script.m` and run the CNN detections please run it from the `rcnn` folder.
+
+*NOTE*: All data provided in the hda_data and campus2_data are not the actual datasets for privacy reasons but just text results of the detections, which are useful to test the trackers. For the actual datasets see below.
 
 ### Datasets/files used and quick start guide
 
-* To download the *Campus II dataset*, contact (acfbarata88@gmail.com)
+* To download the *Campus II dataset*, contact (acfbarata88@gmail.com). The dataset should be in a folder called `Campus_II` in your home directory.
 
-* To download the *HDA+ dataset*, contact (alex@isr.ist.utl.pt)
+* To download the *HDA+ dataset*, contact (alex@isr.ist.utl.pt). The dataset should be in a folder called `HDA_Dataset_V1.3` in your home directory.
 
 * Any questions, contact me (pedro.f.abreu@ist.utl.pt)
 
 * Several .mp4, .pdf and .png which are used in the code cannot be included since they are derived from the datasets. Others, like .txt's, are included.
 
-* Including functions in scripts requires MATLAB R2016b or later.
+* Including functions in scripts requires *MATLAB R2016b or later*.
 ~~~~~~~~~~~~~~~~
-~ Quick instalation guide for Caffe, RCNN and DeepPed, and how to set it up with our framework
+~ [Quick instalation guide][QUICKSTART.md] for Caffe, RCNN and DeepPed, and how to set it up with our framework
 For the sake of completeness a short instalation guide to setup RCNN and DeepPed for Debian based distros is included.
 ~~~~~~~~~~~~~~~~
