@@ -3,7 +3,7 @@
 cam1_camdetections = [400.0; 700.0];
 cam1_region = [4 796; 1022 798; 353 473; 142 431];
 
-%cam2_camdetections = [560.0; 640.0
+cam2_camdetections = [560.0; 640.0];
 cam2_region = [59 796; 503 353; 1015 375; 1011 798];
 
 % These two are the HDA+ elevator patio initial homographies
@@ -28,10 +28,6 @@ drawPoly(overlap,'Black',1.0,false);
 %------------------------------------------------------------------------------
 % Compute initial detection in the ground plane
 cam1_gpdetections = H(H1,cam1_camdetections);
-
-% Identity
-cam2_camdetections = H(inv(H2), cam1_gpdetections);
-
 cam2_gpdetections = H(H2,cam2_camdetections);
 scatter(cam1_gpdetections(1),cam1_gpdetections(2),'MarkerFaceColor',rgb('Red'),'MarkerEdgeColor',rgb('Red'));
 scatter(cam2_gpdetections(1),cam2_gpdetections(2),'MarkerFaceColor',rgb('Blue'),'MarkerEdgeColor',rgb('Blue'));
@@ -46,7 +42,7 @@ n_cam2_gpregion = cam2_gpregion; n_cam2_gpdetections = cam2_gpdetections;
 n_cam1_gpregion = cam1_gpregion; n_cam1_gpdetections = cam1_gpdetections;
 % Iterate
 N = 3;
-%N = 5;
+homog_solver = 'svd';
 n_c2 = zeros(N+1,2);
 n_c2(1,:) = n_cam2_gpdetections';
 n_c1 = zeros(N+1,2);
@@ -54,24 +50,22 @@ n_c1(1,:) = n_cam1_gpdetections';
 power = -100;
 for reps = 1:N
     % "Fix" H1 and compute new H2 with some noise
-    % TODO: test RANSAC
     W_r = wgn(size(n_cam2_gpregion,1),size(n_cam2_gpregion,2),power);
     W_d = wgn(size(n_cam1_gpdetections,2),size(n_cam1_gpdetections,1),power);
     regdet_mat1 = vertcat(repmat(cam2_region,rho_r,1), repmat(cam2_camdetections',rho_m,1));
     regdet_mat2 = vertcat(repmat(n_cam2_gpregion,rho_r,1), repmat(n_cam1_gpdetections',rho_m,1));
-    n_H2 = solve_homography(regdet_mat1, regdet_mat2, 'ransac');
+    n_H2 = solve_homography(regdet_mat1, regdet_mat2, homog_solver);
 
     % Compute new cam2 ground plane regions and detections with n_H2
     %n_cam2_gpdetections = H(n_H2,cam2_camdetections); n_c2(reps+1,:) = n_cam2_gpdetections';
     %n_cam2_gpregion = cw(reg2gnd(cam2_region, n_H2));
 
     % "Fix" H2 and compute H1 with some noise
-    % TODO: test RANSAC
     W_r = wgn(size(n_cam1_gpregion,1),size(n_cam1_gpregion,2),power);
     W_d = wgn(size(n_cam2_gpdetections,2),size(n_cam2_gpdetections,1),power);
     regdet_mat1 = vertcat(repmat(cam1_region,rho_r,1), repmat(cam1_camdetections',rho_m,1));
     regdet_mat2 = vertcat(repmat(n_cam1_gpregion, rho_r,1), repmat(n_cam2_gpdetections',rho_m,1));
-    n_H1 = solve_homography(regdet_mat1, regdet_mat2, 'ransac');
+    n_H1 = solve_homography(regdet_mat1, regdet_mat2, homog_solver);
 
     % Compute new cam2 ground plane regions and detections with n_H2
     n_cam2_gpdetections = H(n_H2,cam2_camdetections);

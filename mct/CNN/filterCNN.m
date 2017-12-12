@@ -46,11 +46,11 @@ function allDetections = filterCNN(allDetections, inplanes)
     %---------------------------------------------------------------------------
     %Try to correct individual systematic mistakes that keep cropping up and are systematic
     systematic_wrong_detections = {};
-    filename = '~/mct-bqp/campus2_data/cam_alameda_systematicFP.txt';
+    filename = fp_files(1);
     delimiterIn = ' ';
     headerlinesIn = 1;
     systematic_wrong_detections{1} = importdata(filename,delimiterIn,headerlinesIn); systematic_wrong_detections{1} = systematic_wrong_detections{1}.data;
-    filename = '~/mct-bqp/campus2_data/cam_central_systematicFP.txt';
+    filename = fp_files(2);
     systematic_wrong_detections{2} = importdata(filename,delimiterIn,headerlinesIn); systematic_wrong_detections{2} = systematic_wrong_detections{2}.data;
     error_variance = [10 10]; %Means that it checks for any bb's within this range (in pixels)
     for id=1:length(cameras)

@@ -107,40 +107,33 @@ for f = 1:(num_frames-1)
         end
     end
     k1 = size(cands{1},1); k2 = size(cands{2},1);
-    %---------------------------------------------------------------------------
-    % Create global arrays and matrices
-    [c_a, c_m, c_nm] = deal(zeros(n,1)); Cg = zeros(n,n);
 
     %---------------------------------------------------------------------------
-    % Compute local cues - motion and appearance
+    % Compute local cues - appearance and motion
+    [c_a, c_m, c_nm] = deal(zeros(n,1));
     for c = 1:length(cameras)
           % Appearance cues computed locally
     %     [c_a, allbbs, allbb_imgs] = appearanceConstraint(l_n,k,f,allDetections,cameraListImages,lambda,'naive','hda',id);
     %     c_a(prev_n * k + 1:(prev_n * k + 1) + l_n * k) = l_c_a;
     %
-    %     % Motion Constraint
-    %     %l_c_m = motionConstraint(l_n,k,f,fps,allDetections,predictions,past_observations);
-    %
-    %     % Neighbourhood motion Constraint - all targets are neighbours since we are not in a crowded scenery
-    %     %l_c_nm = neighbourhoodMotionConstraint(l_n,k,f,fps,allDetections,predictions,past_observations);
     end
 
     %---------------------------------------------------------------------------
     % Compute global cues - grouping (we ignore spatial proximity cues)
-
+    Cg = zeros(n,n);
 
     %---------------------------------------------------------------------------
-    % Prepare inputs for Frank Wolfe
+    % Prepare inputs for Frank Wolfe (conditional gradient)
     [A,b,Aeq,Beq,labels] = FW_preamble(n,k,c_a,c_m,c_nm,Cg);
     % Solve the problem using Frank Wolfe
     [minx,minf,x_t,f_t,t1_end] = FW_crowd_wrapper(A,b, Aeq, Beq, labels); % minx is the value we want
     % Get chunk of k candidates for target i and see which one was picked
     optimization_results = reshape(minx,k,[]);
-
+    %NOTE: Two targets may be assigned to the same target
     kill
     %---------------------------------------------------------------------------
     % Use target association info to fix tracks and fix homography
-    
+
     %---------------------------------------------------------------------------
 end
 

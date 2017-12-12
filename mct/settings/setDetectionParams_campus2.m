@@ -60,5 +60,8 @@ cpu_results = '~/mct-bqp/campus2_data/CPU/CNNdets_';
 global gpu_results
 gpu_results = '~/mct-bqp/campus2_data/GPU/CNNdets_';
 
+global fp_files
+fp_files = ['~/mct-bqp/campus2_data/alameda_CNN_false_positives.txt', '~/mct-bqp/campus2_data/central_CNN_false_positives.txt'];
+
 global use_GPU
 use_GPU = [0 0];
