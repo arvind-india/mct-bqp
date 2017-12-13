@@ -1,4 +1,3 @@
-% Create fictional camera detections for 2 cameras
 %cam1_camdetections = [400.0; 700.0];
 cam1_camdetections = [400.0; 700.0];
 cam1_region = [4 796; 1022 798; 353 473; 142 431];

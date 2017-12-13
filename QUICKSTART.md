@@ -27,7 +27,7 @@ If you opt to build from source you may have something that will report throtlin
 ```
 	sudo apt install python-dev
 ```
-* In `caffe-0.999-master` take a look and edit `Makefile.config` details (rename the example to `Makefile.config`). Be specially careful where you point caffe to (matlab directory, should be in `usr/local/MATLAB`).
+* In `caffe-0.999` take a look and edit `Makefile.config` details (rename the example to `Makefile.config`). Be specially careful where you point caffe to (matlab directory, should be in `usr/local/MATLAB`).
 
 * Before you start be careful to point also to the correct place where you previously installed CUDA. Caffe 0.99 has a couple of bugs we have to fix first: hdf5, old CUDA architectures and signbit. First, execute this script https://github.com/BVLC/caffe/issues/2347. Then:
 ```
@@ -55,8 +55,7 @@ In Makefile change `CXXLIBS="$$CXXLIBS $(LDFLAGS)" -o $@` to `CXXLIBS="$$CXXLIBS
 
 * Then follow the steps (if you get key=-2 at the end it means everything was installed correctly)
 ```
-	cd CAMPUS_II_PEDESTRIAN_TRACKING/software
-	cd caffe-0.999-master
+	cd caffe-0.999
 	sudo make clean
 	sudo make all
 	sudo make matcaffe
@@ -65,7 +64,7 @@ In Makefile change `CXXLIBS="$$CXXLIBS $(LDFLAGS)" -o $@` to `CXXLIBS="$$CXXLIBS
 	cd data/ilsvrc12
 	sudo ./get_ilsvrc_aux.sh
 	cd ../../../rcnn
-	ln -sf ~/hda_code/CAMPUS_II_PEDESTRIAN_TRACKING/software/caffe-0.999-master external/caffe
+	ln -sf ~/caffe-0.999 external/caffe
 	sudo ./selective_search/fetch_selective_search.sh
 	sudo ./data/fetch_models.sh
 	sudo ./data/fetch_selective_search_data.sh
@@ -99,7 +98,7 @@ and run `make clean`, `make all` again in the caffe-master directory. Another yo
 	cd DeepPed
 	sudo nano deepPed_demo
 	(nano - edit) use_gpu=0
-	>>deepPed_demo
+	>> deepPed_demo
 ```
 WARNING: This should already be resolved, but if you see the following and MATLAB segfaults with `[libprotobuf ERROR google/protobuf/text_format.cc:274] Error parsing text-format caffe.NetParameter: 7:7: Message type "caffe.NetParameter" has no field named "layer". WARNING: Logging before InitGoogleLogging() is written to STDERR F0630 15:03:01.788671  6076 upgrade_proto.cpp:571] Check failed: ReadProtoFromTextFile(param_file, param) Failed to parse NetParameter file: model-defs/alexnet_deploy_fc7_CAFFE.prototxt` replace the `rcnn/model-defs/alexnet_deploy_fc7_CAFFE.prototxt` with the one in `DeepPed/mode_def`.
 
