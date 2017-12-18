@@ -1,5 +1,6 @@
+setCaptureParams_campus2;
 setDetectionParams_campus2;
-obj = setupSystemObjects('alameda.mp4'); % Create System objects used for reading video, detecting moving objects, and displaying the results.
+obj = setupSystemObjects('alameda.mp4', resolutions); % Create System objects used for reading video, detecting moving objects, and displaying the results.
 
 tracks = initializeTracks(); % Create an empty array of tracks.
 
