@@ -14,7 +14,9 @@ H2 = [0.053286 0.10144 -37.736;
       0.017139 0.0081285 45.967;
       0.0016208	0.016526 1];
 
-figure; hold on;
+figure;
+subplot(1,2,1)
+ hold on;
 cam1_gpregion = reg2gnd(cam1_region, H1);
 drawPoly(cam1_gpregion,'Red',0.8,false); % Draw region
 cam2_gpregion = reg2gnd(cam2_region, H2);
@@ -41,13 +43,15 @@ rho_m = 1;
 n_cam2_gpregion = cam2_gpregion; n_cam2_gpdetections = cam2_gpdetections;
 n_cam1_gpregion = cam1_gpregion; n_cam1_gpdetections = cam1_gpdetections;
 % Iterate
-N = 3;
+N = 9;
 homog_solver = 'svd';
 n_c2 = zeros(N+1,2);
 n_c2(1,:) = n_cam2_gpdetections';
 n_c1 = zeros(N+1,2);
 n_c1(1,:) = n_cam1_gpdetections';
 power = -100;
+distances = zeros(N,1);
+tic
 for reps = 1:N
     % "Fix" H1 and compute new H2 with some noise
     W_r = wgn(size(n_cam2_gpregion,1),size(n_cam2_gpregion,2),power);
@@ -82,14 +86,20 @@ for reps = 1:N
     drawPoly(n_cam2_gpregion,'Pink',0.5,false); % Draw region
     scatter(n_cam1_gpdetections(1),n_cam1_gpdetections(2),'MarkerFaceColor',rgb('Yellow'),'MarkerEdgeColor',rgb('Yellow'));
     scatter(n_cam2_gpdetections(1),n_cam2_gpdetections(2),'MarkerFaceColor',rgb('Pink'),'MarkerEdgeColor',rgb('Pink'));
+    distances(reps) = sqrt((n_cam2_gpdetections(1)-n_cam1_gpdetections(1))^2 + (n_cam2_gpdetections(2)-n_cam1_gpdetections(2))^2);
+    fprintf(['\t Iteration ', num2str(reps),'. Distance between ground plane detections: ', ...
+      num2str(distances(reps)), '\n']);
 end
-
+time=toc;
+fprintf(['Loop took: ', num2str(round(time*100)/100), '\n']);
+hold on
 plot(n_c2(:,1),n_c2(:,2),'k'); plot(n_c1(:,1),n_c1(:,2),'k'); % Draw iteration process trace
 drawPoly(n_cam1_gpregion,'Orange',0.5,false); % Draw region
 drawPoly(n_cam2_gpregion,'Purple',0.5,false); % Draw region
 scatter(n_cam1_gpdetections(1),n_cam1_gpdetections(2),'MarkerFaceColor',rgb('Orange'),'MarkerEdgeColor',rgb('Orange'));
 scatter(n_cam2_gpdetections(1),n_cam2_gpdetections(2),'MarkerFaceColor',rgb('Purple'),'MarkerEdgeColor',rgb('Purple'));
-
+subplot(1,2,2)
+plot(1:N,distances);
 %---------------------------------FUNCTIONS-------------------------------------
 function reg = cw(in_reg) % Clockwise ordering of the points (works for convex polygons)
     x = in_reg(:,1);

@@ -1,5 +1,6 @@
 function [assignments, S] = solve_assignment_v2(S, images, targs, assignmentAlgorithm)
   % Solve assignment
+  tic
   P = S; A = S; V = S;
   for a=1:size(S,1)
       for b=1:size(S,2)
@@ -64,10 +65,10 @@ function [assignments, S] = solve_assignment_v2(S, images, targs, assignmentAlgo
   end
 
   resolution = eps; % NOTE This can be changed to accelerate the algorithm
-  tic
-      if strcmp(assignmentAlgorithm,'jonker_volgenant')
-        assignments = lapjv(S,resolution);
-      end
+
+  if strcmp(assignmentAlgorithm,'jonker_volgenant')
+    assignments = lapjv(S,resolution);
+  end
   time = toc;
-  fprintf(['\t Solving assignment took: ', num2str(round(time*100)/100), '\n']);
+  fprintf(['\t Solving inter-camera assignment took: ', num2str(round(time*100)/100), '\n']);
 end

@@ -5,6 +5,7 @@
 %cam1_region =
 %cam2_region =
 %overlap =
+tic
 H1 = [0.043383 0.043388 35.129;
      -0.035325 0.022121	68.004;
      0.0020342 0.019584	1];
@@ -117,10 +118,9 @@ for a=1:size(S,1)
 end
 
 resolution = eps; % NOTE This can be changed to accelerate the algorithm
-tic
     assignments = lapjv(S,resolution);
 time = toc;
-fprintf('Time: %f\n', num2str(round(time*100)/100));
+fprintf(['Time: ', num2str(round(time*100)/100), '\n']);
 fprintf('Optimal assignment found: \n');
 for i=1:size(S,1)
   fprintf('Best assignment for ped %d in cam %d === ped %d in cam %d \n', cam_1_peds(i,8), cam_1_peds(i,1),...

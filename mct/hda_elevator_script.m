@@ -82,6 +82,7 @@ for f = 1:(num_frames-1)
     fprintf(['Frame ' num2str(f) ':\n']);
     %---------------------------------------------------------------------------
     fprintf('\t Getting targets and candidates...\n');
+    tic
     n = 0; % Number of targets in all cameras
     k_total = 0; % Number of candidates in all cameras
     targs = {}; % Actual targets from both cameras
@@ -104,16 +105,29 @@ for f = 1:(num_frames-1)
     end
     n1 = size(targs{1},1); n2 = size(targs{2},1); n = n1 + n2;
     k1 = size(cands{1},1); k2 = size(cands{2},1); k_total = k1 + k2; %k is already defined
+    time=toc;
+    fprintf(['\t Getting targets and candidates took: ', num2str(round(time*100)/100), '\n']);
     %---------------------------------------------------------------------------
-    fprintf('\t Solving assignment of targets...\n');
+    fprintf('\t Solving inter-camera assignment...\n');
     %% Pedestrian/Camera association (we do assymetric target association)
     assignmentAlgorithm = 'jonker_volgenant';
     S = zeros(n1,n2); images = {cameraListImages{1}{start_frames(1)+f},cameraListImages{2}{start_frames(2)+f}};
-    [assignments, S] = solve_assignment_v2(S, images, targs, assignmentAlgorithm)
+    [assignments, S] = solve_assignment_v2(S, images, targs, assignmentAlgorithm);
+    % NOTE: Debug
+    wrong_assignments = 0;
+    for i=1:size(S,1)
+      fprintf('\t\tBest assignment for ped %d in cam %d === ped %d in cam %d \n', targs{1}(i,8), targs{1}(i,1),...
+      targs{2}(assignments(i),8), targs{2}(assignments(i),1));
+      if targs{1}(i,8) ~= targs{2}(assignments(i),8)
+        wrong_assignments = wrong_assignments + 1;
+      end
+    end
+    fprintf('\t\t Wrong assignments: %d\n', wrong_assignments);
     %---------------------------------------------------------------------------
 
     fprintf('\t Computing appearance cues...\n');
     % Compute local cues - appearance and motion
+    tic
     c_as = {};
     for c = 1:length(cameras)
       % c_a is coded row-wise that is x=0 y=0 y=1 y=2 y=3 y=4, x=1 y=0 etc...
@@ -133,9 +147,9 @@ for f = 1:(num_frames-1)
       c_as{c} = c_a;
 
       % NOTE: Debug
-      [~,m] = min(c_a)
-      x_c = fix(m/5)
-      y_c = m-1 - (x_c) * 5
+      [~,m] = min(c_a);
+      x_c = fix(m/5);
+      y_c = m-1 - (x_c) * 5;
       cx = cands{c}(1,3) + (x_c-2) * cands{c}(1,5)/10;
       cy = cands{c}(1,4) + (y_c-2) * cands{c}(1,6)/10;
       hold on
@@ -145,22 +159,37 @@ for f = 1:(num_frames-1)
       xticks(1:25);
 
     end
-    kill
+    % This doesnt seem right
+    c_a = cell2mat(c_as);
+    c_m = zeros(1,2*k);
+    c_nm = zeros(1,2*k);
+    time=toc;
+    fprintf(['\t Computing appearance cues took: ', num2str(round(time*100)/100), '\n']);
     %---------------------------------------------------------------------------
     % Compute global cues - grouping (we ignore spatial proximity cues)
-    Cg = groupConstraint_v2(n);
+    fprintf('\t Computing grouping cues...\n');
+    tic
+    Cg = groupConstraint_v2(2,k,cands);
+    % For some reason Cg often has huge negative values so we normalize them for sanity sake
+    normCg = Cg - min(Cg(:));
+    normCg = normCg ./ max(normCg(:));
+    time=toc;
+
+    fprintf(['\t Computing grouping cues took: ', num2str(round(time*100)/100), '\n']);
 
     %---------------------------------------------------------------------------
     fprintf('\tSolving Frank-Wolfe optimization...\n');
     % Prepare inputs for Frank Wolfe (conditional gradient)
-    [A,b,Aeq,Beq,labels] = FW_preamble(n,k,c_a,c_m,c_nm,Cg);
+    [H_,F,Aeq,Beq,labels] = FW_preamble(2,k,c_a,c_m,c_nm,Cg);
     % Solve the problem using Frank Wolfe
-    [minx,minf,x_t,f_t,t1_end] = FW_crowd_wrapper(A,b, Aeq, Beq, labels); % minx is the value we want
+    [minx,minf,x_t,f_t,t1_end] = FW_crowd_wrapper(H_,F,Aeq,Beq,labels); % minx is the value we want
     % Get chunk of k candidates for target i and see which one was picked
     optimization_results = reshape(minx,k,[]);
     %NOTE: Two targets may be assigned to the same target
     fprintf('\tFound optimal candidates for each target. Storing the tracks...\n');
-    % TODO store the tracks
+
+    % Store the tracks in a structure
+    kill
     %---------------------------------------------------------------------------
     % Use target association info to fix tracks and fix homography (maybe fix homography only every other frame)
 

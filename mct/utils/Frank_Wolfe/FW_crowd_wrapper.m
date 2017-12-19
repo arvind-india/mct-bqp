@@ -18,5 +18,5 @@ function [minx,minf,x_t,f_t,t1_end] = FW_crowd_wrapper(A,b, Aeq, Beq, labels)
 
     % Uses SWAP by default
     t1 = tic;
-    [minx,minf,x_t,f_t,~] = FW_crowd_swap(x_0, S_0, alpha_0, A, b,Aeq, Beq, opts);
+    [minx,minf,x_t,f_t,~] = FW_crowd_swap(x_0, S_0, alpha_0, A, b, Aeq, Beq, opts);
     t1_end = toc(t1);

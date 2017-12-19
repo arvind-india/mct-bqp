@@ -1,23 +1,18 @@
-function Cg = groupConstraint_v2(n,k)
+function Cg = groupConstraint_v2(n,k,cands)
     T = zeros(n*k);
+    sp_sigma = 0.1;
+    t = cell2mat(cands');
     %Consider a big group with all the pairwise relationships
     for l1 = 1:(n*k)
         for l2 = 1:(n*k)
             i = ceil(l1/k); %Get i target
             j = ceil(l2/k); %Get j target
-            %Compute eij
-            bb1 = allDetections{1}{f}(i,:);
-            bb2 = allDetections{1}{f}(j,:);
-            xx1 = bb1(3) + bb1(5);
-            yy1 = bb1(4) + bb1(6);
-            xx2 = bb2(3) + bb2(5);
-            yy2 = bb2(4) + bb2(6);
-            eij = abs(xx2-xx1)+abs(yy2-yy1);
 
-            p_i = allbbsvec(l1,1:2);
-            p_j = allbbsvec(l2,1:2);
-            sp_sigma = (allbbsvec(l2,3)*allbbsvec(l2,4))/2; %Set to half the target size
-            T(l1,l2) = exp(-(sqrt((p_i(1)-p_j(1))^2+(p_i(2)-p_j(2))^2) - eij)/(2*sp_sigma^2));
+            %Compute eij
+            xx1 = t(i,9); yy1 = t(i,10);
+            xx2 = t(j,9); yy2 = t(j,10);
+            eij = abs(xx2 - xx1) + abs(yy2 - yy1);
+            T(l1,l2) = exp(-(sqrt((xx2-xx1)^2+(yy2-yy1)^2) - eij)/(2*sp_sigma^2));
         end
     end
     D = diag(sum(T,2)); %row sum
