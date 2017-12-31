@@ -1,28 +1,42 @@
-# Multiple-camera tracking and pedestrian detection with BQP - v0.5
+# Multiple-camera tracking and pedestrian detection with BQP - v0.7 (works with 2 frames)
 
 Working on Ubuntu 16.04, CUDA 8.0 and any GPU with >2GB of memory.
 
 ## Steps to install/Dependencies:
 
-1. Download + Install [Matlab 2016/2017](https://www.mathworks.com/downloads/)
-2. (Optional) Download + Install [Computer Vision Toolbox v8.0](https://www.mathworks.com/products/computer-vision.html)
-3. Download + Install [Caffe](https://github.com/BVLC/caffe)
-4. Download + Install [RCNN](https://github.com/rbgirshick/rcnn)
-5. Download + Install [DeepPed](https://github.com/DenisTome/DeepPed) in the rcnn directory, for all previous steps see [here](QUICKSTART.md)
-6. Download + Install [IlogCPLEX](https://ibm.onthehub.com/WebStore/OfferingDetails.aspx?o=9b4eadea-9776-e611-9421-b8ca3a5db7a1) in a directory of your choosing, do not forget to change that directory in `settings/setTrackerParams.m`
-7. Download + Install [CVX](http://cvxr.com/cvx/doc/install.html)
-8. `cd && git clone https://github.com/pedro-abreu/mct-bqp`
+1. Assuming Ubuntu 16.04 (all the following steps might work on Ubuntu 14.04), `sudo apt-get update`.
+2. Download + Install [Matlab 2016/2017](https://www.mathworks.com/downloads/)
+3. (Optional) Download + Install [Computer Vision Toolbox v8.0](https://www.mathworks.com/products/computer-vision.html)
+4. Download + Install [Caffe](https://github.com/BVLC/caffe)
+5. Download + Install [RCNN](https://github.com/rbgirshick/rcnn)
+6. Download + Install [DeepPed](https://github.com/DenisTome/DeepPed) in the rcnn directory, for all previous steps see [here](QUICKSTART.md)
+7. Download + Install [IlogCPLEX](https://ibm.onthehub.com/WebStore/OfferingDetails.aspx?o=9b4eadea-9776-e611-9421-b8ca3a5db7a1) in a directory of your choosing, do not forget to change that directory in `settings/setTrackerParams.m`
+8. Download + Install [CVX](http://cvxr.com/cvx/doc/install.html)
+9. `cd && git clone https://github.com/pedro-abreu/mct-bqp`
 10. `cd rcnn && sed -i '$ a addpath(genpath('~/mct-bqp'));' startup.m`
-12. Your directory structure should now be *~/rcnn* in one folder and *~/mct-bqp* on another. You can install Caffe wherever you want.
-13. Run the code from the rcnn folder, run either `campus2_script` or `hda_elevator_script`
-14. Some utility functions from the [Dollar toolbox](https://github.com/pdollar/toolbox) are very useful for handling some of the data formats. This also has the ACF detector used for the HDA+ dataset.
-15. You may need to have `g++` if you wish to use some `.mex` files for faster computation.
-16. (Optional) There are some functions adapted from [vgg](http://www.robots.ox.ac.uk/~vgg/hzbook/code/) and from [Peter Kovesi](http://www.peterkovesi.com/matlabfns/) for RANSAC homography computation (found in /homography/ransac), if you wish to inspect them further.
-17. (Optional) [Python 2.7.13](https://www.python.org/downloads/release/python-2713/)
+11. Your directory structure should now be *~/rcnn* in one folder and *~/mct-bqp* on another. You can install Caffe wherever you want.
+12. Run the code from the rcnn folder, run either `campus2_script` or `hda_elevator_script`
+13. Some utility functions from the [Dollar toolbox](https://github.com/pdollar/toolbox) are very useful for handling some of the data formats. This also has the ACF detector used for the HDA+ dataset.
+14. You may need to have `g++` if you wish to use some `.mex` files for faster computation.
+15. (Optional) There are some functions adapted from [vgg](http://www.robots.ox.ac.uk/~vgg/hzbook/code/) and from [Peter Kovesi](http://www.peterkovesi.com/matlabfns/) for RANSAC homography computation (found in /homography/ransac), if you wish to inspect them further.
+16. (Optional) [Python 2.7.13](https://www.python.org/downloads/release/python-2713/)
 
-Once you have done all the above and if you have installed rcnn in the `~/rcnn` directory, run `echo "addpath(genpath('~/mct-bqp'));" >> ~/rcnn/startup.m` and that should be it. Furthermore if you wish to run `campus2_script.m` and run the CNN detections please run it from the `rcnn` folder.
+Once you have done all the above and if you have installed rcnn in the `~/rcnn` directory (or wherever you have installed it), run `echo "addpath(genpath('~/mct-bqp'));" >> ~/rcnn/startup.m`.
 
-*NOTE*: All data provided in the hda_data and campus2_data are not the actual datasets for privacy reasons but just text results of the detections, which are useful to test the trackers. For the actual datasets see below.
+Run `campus2_script.m` for tracking in the *Campus II* dataset (please run it from the `~/rcnn` or equivalent folder, without forgetting to run `startup.m`).
+
+Run `hda_elevator_script.m` for tracking in a specific *HDA+* scenario (elevator lobby). You can run it from `/mct-bqp`.
+
+*NOTE*: All data provided in the `hda_data` and `campus2_data` folders are not the actual datasets for privacy reasons but just txt results of the detections, which are useful to test the trackers. For the actual datasets see below.
+
+### Tweaking/Finetuning
+
+* To tweak the detection on the *HDA+* data, see `mct/settings/setDetectionParams_hda_elevator`. The comments should be enough for you to understand.
+
+* To tweak detections on the *Campus_II* data, see `mct/settings/setDetectionParams_campus2`.
+
+* To tweak the parameters of the actual tracker (which is equal for both datasets), see `mct/settings/setTrackerParams`.
+
 
 ### Datasets/files used and quick start guide
 

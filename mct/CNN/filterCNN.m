@@ -1,5 +1,5 @@
 function allDetections = filterCNN(allDetections, inplanes)
-    setCaptureParams_campus2;
+
     setDetectionParams_campus2;
     %---------------------------------------------------------------------------
     %allDetections = cell(length(cameras),1);

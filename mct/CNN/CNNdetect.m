@@ -6,7 +6,6 @@ function allDetections = CNNdetect(cameraListImages,sample_size)
     % Output
     %  allDetections: all detections from the CNN
     setDetectionParams_campus2;
-    setCaptureParams_campus2;
 
     %==========================================================
     %Just for now, working with this

@@ -77,8 +77,26 @@ for a=1:size(S,1)
         %waitforbuttonpress
         I1 = [imhist(bb_img1(:,:,1)) imhist(bb_img1(:,:,2)) imhist(bb_img1(:,:,3))];
         I2 = [imhist(bb_img2(:,:,1)) imhist(bb_img2(:,:,2)) imhist(bb_img2(:,:,3))];
-        % Chi-squared between hists
-        appearance_score = pdist2(I1',I2','chisq');
+        % Distances
+        %'euclidean' / 'sqeuclidean':
+        %  Euclidean / SQUARED Euclidean distance.  Note that 'sqeuclidean'
+        %  is significantly faster.
+        %'chisq'
+        %  The chi-squared distance between two vectors is defined as:
+        %   d(x,y) = sum( (xi-yi)^2 / (xi+yi) ) / 2;
+        %  The chi-squared distance is useful when comparing histograms.
+        %'cosine'
+        %  Distance is defined as the cosine of the angle between two vectors.
+        %'emd'
+        %  Earth Mover's Distance (EMD) between positive vectors (histograms).
+        %  Note for 1D, with all histograms having equal weight, there is a simple
+        %  closed form for the calculation of the EMD.  The EMD between histograms
+        %  x and y is given by the sum(abs(cdf(x)-cdf(y))), where cdf is the
+        %  cumulative distribution function (computed simply by cumsum).
+        %'L1'
+        %  The L1 distance between two vectors is defined as:  sum(abs(x-y));
+        distance_metric = 'euclidean'; % emd, cosine, euclidean, chisq, L1
+        appearance_score = pdist2(I1',I2',distance_metric);
         A(a,b) = (1/3)*sum(appearance_score(:,1),1) / (256*max(appearance_score(:,1))) + (1/3)*sum(appearance_score(:,2),1)/(256*max(appearance_score(:,2))) + (1/3)* sum(appearance_score(:,3),1)/(256*max(appearance_score(:,3)));
     end
 end
@@ -96,6 +114,9 @@ for a=1:size(A,1)
     A(a,b) = A(a,b)/a_sum;
   end
 end
+figure
+bar(A(:));
+
 % Normalize V along the smaller dimension
 for a=1:size(V,1)
   v_sum = sum(V(a,:));
@@ -120,7 +141,7 @@ end
 resolution = eps; % NOTE This can be changed to accelerate the algorithm
     assignments = lapjv(S,resolution);
 time = toc;
-fprintf(['Time: ', num2str(round(time*100)/100), '\n']);
+fprintf(['Time: ', num2str(round(time*100)/100), ' seconds \n']);
 fprintf('Optimal assignment found: \n');
 for i=1:size(S,1)
   fprintf('Best assignment for ped %d in cam %d === ped %d in cam %d \n', cam_1_peds(i,8), cam_1_peds(i,1),...

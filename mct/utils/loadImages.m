@@ -1,4 +1,4 @@
-function cameraListImages = loadImages(cameras, image_directory, sample_size, start_frame, dataset)
+function cameraListImages = loadImages(cameras, image_directory, num_frames, start_frame, dataset)
     if strcmp(dataset, 'hda')
         for i=1:length(cameras)
             direct = strcat(image_directory, num2str(cameras{i}));
@@ -6,11 +6,11 @@ function cameraListImages = loadImages(cameras, image_directory, sample_size, st
                 foldercontent = dir(direct{1});
                 if numel(foldercontent) == 2
                     % folder exists and is empty
-                    seq2img(cameras{i},start_frame, sample_size);
+                    seq2img(cameras{i},start_frame(i), num_frames(i));
                 end
             end
             %cameraListImages{i} = cell(sample_size,1);
-            for j=start_frame:(start_frame + sample_size)
+            for j=start_frame(i):(start_frame(i) + num_frames(i))
                 cameraListImages{i}{j} = imread(strcat(direct{1}, '/', num2str(j), '.png'));
             end
         end

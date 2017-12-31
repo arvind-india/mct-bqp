@@ -1,6 +1,4 @@
 addpath('/home/pedro/rcnn');
-% Set params of the capture
-setCaptureParams_campus2;
 % Set params of the detection
 setDetectionParams_campus2;
 % Set params of the tracker

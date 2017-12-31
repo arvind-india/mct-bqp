@@ -3,7 +3,6 @@ function allDetections = ACFdetect()
     % Outputs
     %  allDetections: all pedestrians identified by the detected
 
-    setCaptureParams_hda_elevator; % Has camera info
     setDetectionParams_hda_elevator; % has detector info
 
     allDetections = cell(length(cameras),1); % Allocate

@@ -43,6 +43,8 @@ rho_m = 1;
 n_cam2_gpregion = cam2_gpregion; n_cam2_gpdetections = cam2_gpdetections;
 n_cam1_gpregion = cam1_gpregion; n_cam1_gpdetections = cam1_gpdetections;
 % Iterate
+option = 'iterations'; % Pick 'iterations' or 'delta'
+delta = 0.01;
 N = 9;
 homog_solver = 'svd';
 n_c2 = zeros(N+1,2);
@@ -52,46 +54,79 @@ n_c1(1,:) = n_cam1_gpdetections';
 power = -100;
 distances = zeros(N,1);
 tic
-for reps = 1:N
-    % "Fix" H1 and compute new H2 with some noise
-    W_r = wgn(size(n_cam2_gpregion,1),size(n_cam2_gpregion,2),power);
-    W_d = wgn(size(n_cam1_gpdetections,2),size(n_cam1_gpdetections,1),power);
-    regdet_mat1 = vertcat(repmat(cam2_region,rho_r,1), repmat(cam2_camdetections',rho_m,1));
-    regdet_mat2 = vertcat(repmat(n_cam2_gpregion,rho_r,1), repmat(n_cam1_gpdetections',rho_m,1));
-    n_H2 = solve_homography(regdet_mat1, regdet_mat2, homog_solver);
+if strcmp('iterations', option)
+  for reps = 1:N
+      % "Fix" H1 and compute new H2 with some noise
+      W_r = wgn(size(n_cam2_gpregion,1),size(n_cam2_gpregion,2),power);
+      W_d = wgn(size(n_cam1_gpdetections,2),size(n_cam1_gpdetections,1),power);
+      regdet_mat1 = vertcat(repmat(cam2_region,rho_r,1), repmat(cam2_camdetections',rho_m,1));
+      regdet_mat2 = vertcat(repmat(n_cam2_gpregion + W_r,rho_r,1), repmat(n_cam1_gpdetections' + W_d,rho_m,1));
+      n_H2 = solve_homography(regdet_mat1, regdet_mat2, homog_solver);
 
-    % Compute new cam2 ground plane regions and detections with n_H2
-    %n_cam2_gpdetections = H(n_H2,cam2_camdetections); n_c2(reps+1,:) = n_cam2_gpdetections';
-    %n_cam2_gpregion = cw(reg2gnd(cam2_region, n_H2));
+      % "Fix" H2 and compute H1 with some noise
+      W_r = wgn(size(n_cam1_gpregion,1),size(n_cam1_gpregion,2),power);
+      W_d = wgn(size(n_cam2_gpdetections,2),size(n_cam2_gpdetections,1),power);
+      regdet_mat1 = vertcat(repmat(cam1_region,rho_r,1), repmat(cam1_camdetections',rho_m,1));
+      regdet_mat2 = vertcat(repmat(n_cam1_gpregion + W_r, rho_r,1), repmat(n_cam2_gpdetections' + W_d,rho_m,1));
+      n_H1 = solve_homography(regdet_mat1, regdet_mat2, homog_solver);
 
-    % "Fix" H2 and compute H1 with some noise
-    W_r = wgn(size(n_cam1_gpregion,1),size(n_cam1_gpregion,2),power);
-    W_d = wgn(size(n_cam2_gpdetections,2),size(n_cam2_gpdetections,1),power);
-    regdet_mat1 = vertcat(repmat(cam1_region,rho_r,1), repmat(cam1_camdetections',rho_m,1));
-    regdet_mat2 = vertcat(repmat(n_cam1_gpregion, rho_r,1), repmat(n_cam2_gpdetections',rho_m,1));
-    n_H1 = solve_homography(regdet_mat1, regdet_mat2, homog_solver);
+      % Compute new cam2 ground plane regions and detections with n_H2
+      n_cam2_gpdetections = H(n_H2,cam2_camdetections);
+      n_c2(reps+1,:) = n_cam2_gpdetections';
+      %NOTE: There was a problem here with the clockwise ordenation of points, it made the method not converge
+      n_cam2_gpregion = reg2gnd(cam2_region, n_H2);
 
-    % Compute new cam2 ground plane regions and detections with n_H2
-    n_cam2_gpdetections = H(n_H2,cam2_camdetections);
-    n_c2(reps+1,:) = n_cam2_gpdetections';
-    %NOTE: There was a problem here with the clockwise ordenation of points, it made the method not converge
-    n_cam2_gpregion = reg2gnd(cam2_region, n_H2);
+      % Compute new cam1 ground plane regions and detections with n_H1
+      n_cam1_gpdetections = H(n_H1,cam1_camdetections);
+      n_c1(reps+1,:) = n_cam1_gpdetections';
+      n_cam1_gpregion = cw(reg2gnd(cam1_region, n_H1));
 
-    % Compute new cam1 ground plane regions and detections with n_H1
-    n_cam1_gpdetections = H(n_H1,cam1_camdetections);
-    n_c1(reps+1,:) = n_cam1_gpdetections';
-    n_cam1_gpregion = cw(reg2gnd(cam1_region, n_H1));
+      drawPoly(n_cam1_gpregion,'Yellow',0.5,false); % Draw region
+      drawPoly(n_cam2_gpregion,'Pink',0.5,false); % Draw region
+      scatter(n_cam1_gpdetections(1),n_cam1_gpdetections(2),'MarkerFaceColor',rgb('Yellow'),'MarkerEdgeColor',rgb('Yellow'));
+      scatter(n_cam2_gpdetections(1),n_cam2_gpdetections(2),'MarkerFaceColor',rgb('Pink'),'MarkerEdgeColor',rgb('Pink'));
+      distances(reps) = sqrt((n_cam2_gpdetections(1)-n_cam1_gpdetections(1))^2 + (n_cam2_gpdetections(2)-n_cam1_gpdetections(2))^2);
+      fprintf(['\t Iteration ', num2str(reps),'. Distance between ground plane detections: ', ...
+        num2str(distances(reps)), '\n']);
+  end
+elseif strcmp('delta', option)
+  d = 0;
+  while d < delta
+      % "Fix" H1 and compute new H2 with some noise
+      W_r = wgn(size(n_cam2_gpregion,1),size(n_cam2_gpregion,2),power);
+      W_d = wgn(size(n_cam1_gpdetections,2),size(n_cam1_gpdetections,1),power);
+      regdet_mat1 = vertcat(repmat(cam2_region,rho_r,1), repmat(cam2_camdetections',rho_m,1));
+      regdet_mat2 = vertcat(repmat(n_cam2_gpregion,rho_r,1), repmat(n_cam1_gpdetections',rho_m,1));
+      n_H2 = solve_homography(regdet_mat1, regdet_mat2, homog_solver);
 
-    drawPoly(n_cam1_gpregion,'Yellow',0.5,false); % Draw region
-    drawPoly(n_cam2_gpregion,'Pink',0.5,false); % Draw region
-    scatter(n_cam1_gpdetections(1),n_cam1_gpdetections(2),'MarkerFaceColor',rgb('Yellow'),'MarkerEdgeColor',rgb('Yellow'));
-    scatter(n_cam2_gpdetections(1),n_cam2_gpdetections(2),'MarkerFaceColor',rgb('Pink'),'MarkerEdgeColor',rgb('Pink'));
-    distances(reps) = sqrt((n_cam2_gpdetections(1)-n_cam1_gpdetections(1))^2 + (n_cam2_gpdetections(2)-n_cam1_gpdetections(2))^2);
-    fprintf(['\t Iteration ', num2str(reps),'. Distance between ground plane detections: ', ...
-      num2str(distances(reps)), '\n']);
+      % "Fix" H2 and compute H1 with some noise
+      W_r = wgn(size(n_cam1_gpregion,1),size(n_cam1_gpregion,2),power);
+      W_d = wgn(size(n_cam2_gpdetections,2),size(n_cam2_gpdetections,1),power);
+      regdet_mat1 = vertcat(repmat(cam1_region,rho_r,1), repmat(cam1_camdetections',rho_m,1));
+      regdet_mat2 = vertcat(repmat(n_cam1_gpregion, rho_r,1), repmat(n_cam2_gpdetections',rho_m,1));
+      n_H1 = solve_homography(regdet_mat1, regdet_mat2, homog_solver);
+
+      % Compute new cam2 ground plane regions and detections with n_H2
+      n_cam2_gpdetections = H(n_H2,cam2_camdetections);
+      n_c2(reps+1,:) = n_cam2_gpdetections';
+      %NOTE: There was a problem here with the clockwise ordenation of points, it made the method not converge
+      n_cam2_gpregion = reg2gnd(cam2_region, n_H2);
+
+      % Compute new cam1 ground plane regions and detections with n_H1
+      n_cam1_gpdetections = H(n_H1,cam1_camdetections);
+      n_c1(reps+1,:) = n_cam1_gpdetections';
+      n_cam1_gpregion = cw(reg2gnd(cam1_region, n_H1));
+
+      drawPoly(n_cam1_gpregion,'Yellow',0.5,false); % Draw region
+      drawPoly(n_cam2_gpregion,'Pink',0.5,false); % Draw region
+      scatter(n_cam1_gpdetections(1),n_cam1_gpdetections(2),'MarkerFaceColor',rgb('Yellow'),'MarkerEdgeColor',rgb('Yellow'));
+      scatter(n_cam2_gpdetections(1),n_cam2_gpdetections(2),'MarkerFaceColor',rgb('Pink'),'MarkerEdgeColor',rgb('Pink'));
+      d = sqrt((n_cam2_gpdetections(1)-n_cam1_gpdetections(1))^2 + (n_cam2_gpdetections(2)-n_cam1_gpdetections(2))^2);
+      fprintf(['\t Distance between ground plane detections: ', num2str(d), '\n']);
+  end
 end
 time=toc;
-fprintf(['Loop took: ', num2str(round(time*100)/100), '\n']);
+fprintf(['Loop took (remember, cache makes a difference): ', num2str(round(time*100)/100), ' seconds \n']);
 hold on
 plot(n_c2(:,1),n_c2(:,2),'k'); plot(n_c1(:,1),n_c1(:,2),'k'); % Draw iteration process trace
 drawPoly(n_cam1_gpregion,'Orange',0.5,false); % Draw region

@@ -6,7 +6,7 @@ function allDetections = filterACFInria_v2(allDetections)
     % Output
     %  allDetections: all pedestrians identified by the detected
 
-    setCaptureParams_hda_elevator;
+    setDetectionParams_hda_elevator;
 
     for id=1:length(cameras)
         allDetections{id}(allDetections{id}(:,7)==0, :) = []; %Remove those that have the occlusion bit to 1
