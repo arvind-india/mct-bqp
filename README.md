@@ -1,4 +1,4 @@
-# Multiple-camera tracking and pedestrian detection with BQP - v0.7 (works with 2 frames)
+# Multiple-camera tracking and pedestrian detection with BQP AKA Harry Potter's Marauders Map tracker
 
 Working on Ubuntu 16.04, CUDA 8.0 and any GPU with >2GB of memory.
 
@@ -18,7 +18,7 @@ Working on Ubuntu 16.04, CUDA 8.0 and any GPU with >2GB of memory.
 12. Run the code from the rcnn folder, run either `campus2_script` or `hda_elevator_script`
 13. Some utility functions from the [Dollar toolbox](https://github.com/pdollar/toolbox) are very useful for handling some of the data formats. This also has the ACF detector used for the HDA+ dataset.
 14. You may need to have `g++` if you wish to use some `.mex` files for faster computation.
-15. (Optional) There are some functions adapted from [vgg](http://www.robots.ox.ac.uk/~vgg/hzbook/code/) and from [Peter Kovesi](http://www.peterkovesi.com/matlabfns/) for RANSAC homography computation (found in /homography/ransac), if you wish to inspect them further.
+15. (Optional) There are some functions adapted from [vgg](http://www.robots.ox.ac.uk/~vgg/hzbook/code/) and from [Peter Kovesi](http://www.peterkovesi.com/matlabfns/) for RANSAC homography computation (found in `/homography/ransac`), if you wish to inspect them further.
 16. (Optional) [Python 2.7.13](https://www.python.org/downloads/release/python-2713/)
 
 Once you have done all the above and if you have installed rcnn in the `~/rcnn` directory (or wherever you have installed it), run `echo "addpath(genpath('~/mct-bqp'));" >> ~/rcnn/startup.m`.
