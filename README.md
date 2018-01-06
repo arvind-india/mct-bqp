@@ -1,4 +1,4 @@
-# Multiple-camera tracking and pedestrian detection with BQP AKA Harry Potter's Marauders Map tracker
+# Multiple-camera tracking and pedestrian detection with BQP 
 
 Working on Ubuntu 16.04, CUDA 8.0 and any GPU with >2GB of memory.
 

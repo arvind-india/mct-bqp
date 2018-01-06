@@ -82,6 +82,8 @@ fprintf('Starting tracking loop:\n');
 % Global iteration loop
 k = g_candidates ^ 2; % Candidates per target
 valid_pairing_detections_c1 = {}; valid_pairing_detections_c2 = {};
+tau = 3;
+groups = {};
 %---------------------------------------------------------------------------
 for f = 1:(num_frames-1)
     fprintf(['Frame ' num2str(f) ':\n']);
@@ -188,13 +190,44 @@ for f = 1:(num_frames-1)
     fprintf('\t Computing motion cues (for frame > 1)\n');
 
 
+    fprintf('\t Computing neighbourhood motion cues (for frame > 1)\n');
+
 
     %---------------------------------------------------------------------------
     % Compute global cues - grouping (we ignore spatial proximity cues)
     fprintf('\t Computing grouping cues...\n');
     tic
-    % NOTE grouping constraints encode a different thing
-    Cg = groupConstraint_v2(n,k,targs);
+    fprintf('\t Creating/Updating groups\n');
+    if f==1 || mod(f,tau) == 0
+      % Add targets to group
+      for i_t = 1:n
+        % Get target
+        t_x = targs(i_t,9);
+        t_y = targs(i_t,10);
+        in_group = 0:
+        for grp = 1:length(groups)
+          for ele = 1:length(groups{grp})
+            % Is this element from this group within the group_bubble?
+            x = groups{grp}(ele,9);
+            y = groups{grp}(ele,9);
+            if sqrt(tx-x)^2 + (ty-y)^2) < 1.2
+              in_group = 1;
+              groups{grp} = vertcat(groups{grp}, targs(i_t,:));
+              % TODO early break
+          end
+        end
+        if in_group == 0
+          % Create a single group for this target
+          group{end+1} = targs(i_t,:);
+        end
+      end
+    end
+    time=toc;
+    tic
+    % NOTE Encourage the selection of candidate locations that keep the formation of targets within each group
+    %Cg = groupConstraint_v2(n,k,targs);
+    Cg = groupConstraint_v3(n,k,groups,targs,cands);
+
     %Cg = zeros(n*k,n*k);
     % For some reason Cg often has huge negative values so we normalize them for sanity sake
     normCg = Cg - min(Cg(:));
@@ -270,7 +303,7 @@ for f = 1:(num_frames-1)
     %[assignments, S] = solve_assignment_v2(S, images, targs, assignmentAlgorithm);
     % NOTE: Debug
     wrong_assignments = 0;
-
+    % TODO many of these loops could probably be turned into parfors...
     for i=1:size(S,1)
       fprintf('\t\tDEBUG: Best assignment for ped %d in cam %d === ped %d in cam %d \n', targs{1}(i,8), targs{1}(i,1),...
       targs{2}(assignments(i),8), targs{2}(assignments(i),1));
@@ -287,6 +320,32 @@ for f = 1:(num_frames-1)
         end
         valid_pairing_detections_c1{end+1} = targs{1}(i,:);
         valid_pairing_detections_c2{end+1} = targs{2}(assignments(i),:);
+
+        % Fixing groups
+        for gi=1:length(groups)
+          grp = groups{gi};
+          for ii = 1:size(grp,1)
+            for jj = 1:size(grp,1)
+              % If these 2 are from different cameras
+              if grp(ii,3) == 57 && grp(jj,3) == 58
+                if grp(ii,1) == i && grp(jj,1) == assignment(i)
+                  % Eliminate both, store the average position
+                  xx1 = grp(ii,9);
+                  yy1 = grp(ii,10);
+                  xx2 = grp(jj,9);
+                  yy2 = grp(jj,10);
+                  % Eliminate one
+                  grp(ii,:) = [];
+                  % replace the others x and y positions
+                  grp(jj,9) = (xx1 + xx2)/2.0;
+                  grp(jj,10) = (yy1 + yy2)/2.0;
+                end
+              end
+
+            end
+          end
+        end
+
       end
       if targs{1}(i,8) ~= targs{2}(assignments(i),8)
         wrong_assignments = wrong_assignments + 1;
@@ -294,7 +353,7 @@ for f = 1:(num_frames-1)
     end
     fprintf('\t\tWrong assignments: %d\n', wrong_assignments);
     fprintf('\tFixing tracks + detections in current frame\n');
-    % Remaking tracks
+    % TODO Remaking tracks
     tracks = vertcat(tracks_c1, tracks_c2);
 
 
