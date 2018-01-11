@@ -14,6 +14,9 @@ homography_directory = '~/mct-bqp/hda_data/homographies';
 global fps
 fps = 2;
 
+global dt
+dt = 1/fps;
+
 global resolutions
 resolutions = [1280 800; 1280 800];
 

@@ -16,7 +16,7 @@ function [assignments, S, A, P, P_nonnormalized, V] = solve_assignment_v2(S, ima
           % Appearance
           bb_img1 = imcrop(images{1},targs{1}(a,3:6));
           bb_img2 = imcrop(images{2},targs{2}(b,3:6));
-          %imshow(bb_img1);
+          imshow(bb_img1);
           %waitforbuttonpress
           %imshow(cam2_img);
           %imshow(bb_img2);

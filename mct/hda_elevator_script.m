@@ -72,6 +72,78 @@ for c=1:length(cameras)
   gt{c} = annotations.objLists;
 end
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+fprintf('Plotting ground truth...\n');
+number_of_all_peds = 80;
+targ_bins_c1 = cell(number_of_all_peds,1); % We have like less than 80 ped ids right?
+for i = 1:num_frames(1)
+  actual_frames = start_frames(1) + i;
+  a = allDetections{1}{actual_frames};
+  for tr = 1:size(a,1)
+    targ = a(tr,:);
+    t = H(homographies{1},[targ(3)+targ(5)/2; targ(4)+targ(6)]);
+    tar = [t(1) t(2)];
+    targ_bins_c1{a(tr,7)} = vertcat(targ_bins_c1{a(tr,7)},tar);
+  end
+end
+targ_bins_c2 = cell(number_of_all_peds,1); % We have like less than 80 ped ids right?
+for i = 1:num_frames(2)
+  actual_frames = start_frames(2) + i;
+  a = allDetections{2}{actual_frames};
+  for tr = 1:size(a,1)
+    targ = a(tr,:);
+    t = H(homographies{2},[targ(3)+targ(5)/2; targ(4)+targ(6)]);
+    tar = [t(1) t(2)];
+    targ_bins_c2{a(tr,7)} = vertcat(targ_bins_c2{a(tr,7)},tar);
+  end
+end
+figure
+hold on
+for i=1:number_of_all_peds
+    if isempty(targ_bins_c1{i}) == 0
+        scatter(targ_bins_c1{i}(:,1),targ_bins_c1{i}(:,2));
+    end
+end
+figure
+hold on
+for i=1:number_of_all_peds
+  if isempty(targ_bins_c2{i}) == 0
+      scatter(targ_bins_c2{i}(:,1),targ_bins_c2{i}(:,2));
+  end
+end
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+%%=========================================================
 % Get a ground truth for an experiment, use RunToVisualize to see these
 allPedIds = ground_truth;
 allPedIds = computeAllPedIds(homographies, allPedIds, cameras);
@@ -87,7 +159,7 @@ groups = {};
 %---------------------------------------------------------------------------
 for f = 1:(num_frames-1)
     fprintf(['Frame ' num2str(f) ':\n']);
-    if f==2
+    if f==2 % DEBUG
       kill2
     end
     %---------------------------------------------------------------------------
@@ -181,13 +253,51 @@ for f = 1:(num_frames-1)
     end
     % TODO make this genetic for more than 2 cameras
     c_a = [repmat(c_as{1},1,n1) repmat(c_as{2},1,n2)];
-    c_m = zeros(1,n*k);
+
     c_nm = zeros(1,n*k);
     time=toc;
     fprintf(['\t Computing appearance cues took: ', num2str(round(time*100)/100), ' seconds \n']);
     %---------------------------------------------------------------------------
     % Compute global cues - grouping (we ignore spatial proximity cues)
     fprintf('\t Computing motion cues (for frame > 1)\n');
+    if f ~= 1 % n*k = (n1+n2)*(k1+k2) = n1*k1 + n1*k2 + n2*k1 + n2*k2
+      c_m = [];
+      % Get n1 candidates <--> targets motion cues
+      sigma = [1 0; 0 1];
+      cam1_gaussian_diffs = zeros(n1*k1,1); idx = 1;
+      for i=1:n1
+        targ = tracks_c1{i};
+        center = [targ(9) + targ(11)/dt; targ(10) + targ(12)/dt];
+        targ_gaussian = gauss2d(g_candidates, sigma, center);
+
+        %instead of having the 25 sliding boxes per candidate get a gaussian that is fixed on the targets + targets dx/dy
+        %and do the absolute difference to a gaussian centered on each candidate
+        for j=1:k1
+          % Generate a gaussian for this candidate
+          center = [cands{1}(9) + cands{1}(11)/dt; cands{1}(10) + cands{1}(12)/dt];
+          cand_gaussian = gauss2d(g_candidates, sigma, center);
+          % Subtract and absolute the 2 gaussians
+          cam1_gaussian_diffs(idx) = pdist2(targ_gaussian, cand_gaussian,'chisq');
+          idx = idx + 1;
+        end
+      end
+      cm = horzcat(cm,cam1_gaussian_diffs');
+      cm = horzcat(cm,zeros(1,n1*k2));
+
+      % Get n2 candidates <--> targets motion cues
+      cam1_gaussian_diffs = zeros(n1*k1,1); idx = 1;
+      for i=1:n2
+        targ = tracks_c2{i};
+        for j=1:k2
+
+        end
+      end
+      cm = horzcat(cm,zeros(1,n2*k1));
+      cm = horzcat(cm,cam2_gaussian_diffs');
+
+    else
+      c_m = zeros(1,n*k);
+    end
 
 
     fprintf('\t Computing neighbourhood motion cues (for frame > 1)\n');
@@ -198,35 +308,35 @@ for f = 1:(num_frames-1)
     fprintf('\t Computing grouping cues...\n');
     tic
     fprintf('\t Creating/Updating groups\n');
-    if f==1 || mod(f,tau) == 0
-      % Add targets to group
-      for i_t = 1:n
-        % Get target
-        t_x = targs(i_t,9);
-        t_y = targs(i_t,10);
-        in_group = 0:
-        for grp = 1:length(groups)
-          for ele = 1:length(groups{grp})
-            % Is this element from this group within the group_bubble?
-            x = groups{grp}(ele,9);
-            y = groups{grp}(ele,9);
-            if sqrt(tx-x)^2 + (ty-y)^2) < 1.2
-              in_group = 1;
-              groups{grp} = vertcat(groups{grp}, targs(i_t,:));
-              % TODO early break
-          end
-        end
-        if in_group == 0
-          % Create a single group for this target
-          group{end+1} = targs(i_t,:);
-        end
-      end
-    end
+    %if f==1 || mod(f,tau) == 0
+    %  % Add targets to group
+    %  for i_t = 1:n
+    %    % Get target
+    %    t_x = targs(i_t,9);
+    %    t_y = targs(i_t,10);
+    %    in_group = 0:
+    %    for grp = 1:length(groups)
+    %      for ele = 1:length(groups{grp})
+    %        % Is this element from this group within the group_bubble?
+    %        x = groups{grp}(ele,9);
+    %        y = groups{grp}(ele,10);
+    %        if sqrt(tx-x)^2 + (ty-y)^2) < 1.2
+    %          in_group = 1;
+    %          groups{grp} = vertcat(groups{grp}, targs(i_t,:));
+    %          % TODO early break
+    %      end
+    %    end
+    %    if in_group == 0
+    %      % Create a single group for this target
+    %      group{end+1} = targs(i_t,:);
+    %    end
+    %  end
+    %end
     time=toc;
     tic
     % NOTE Encourage the selection of candidate locations that keep the formation of targets within each group
-    %Cg = groupConstraint_v2(n,k,targs);
-    Cg = groupConstraint_v3(n,k,groups,targs,cands);
+    Cg = groupConstraint_v2(n,k,targs);
+    %Cg = groupConstraint_v3(n,k,groups,targs,cands);
 
     %Cg = zeros(n*k,n*k);
     % For some reason Cg often has huge negative values so we normalize them for sanity sake
@@ -320,7 +430,7 @@ for f = 1:(num_frames-1)
         end
         valid_pairing_detections_c1{end+1} = targs{1}(i,:);
         valid_pairing_detections_c2{end+1} = targs{2}(assignments(i),:);
-
+        fprintf('\t\tFixing groups \n');
         % Fixing groups
         for gi=1:length(groups)
           grp = groups{gi};
@@ -341,11 +451,9 @@ for f = 1:(num_frames-1)
                   grp(jj,10) = (yy1 + yy2)/2.0;
                 end
               end
-
             end
           end
         end
-
       end
       if targs{1}(i,8) ~= targs{2}(assignments(i),8)
         wrong_assignments = wrong_assignments + 1;
