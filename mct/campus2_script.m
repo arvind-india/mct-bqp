@@ -71,6 +71,14 @@ colors = {'Red','Green'};
 for i=1:length(cameras)
     drawPoly(ground_plane_regions{i},colors{i},0.5,false);
 end
+
+
+
+
+
+
+
+
 % Plot pedestrians
 plotDetectionsGroundPlane(allDetections,homographies,ground_plane_regions,'show_outliers','campus_2');
 % Plot overlap of camera regions
