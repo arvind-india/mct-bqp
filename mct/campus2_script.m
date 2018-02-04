@@ -73,7 +73,73 @@ for i=1:length(cameras)
 end
 
 
+%%==============================================================
+num_frames = [30 30]; % Number of frames
+start_frames = [1000 1200]; % Frames to start collecting images
 
+% Get subset of files from the cameraList sequence
+for i=1:length(cameras)
+    cameraListImages{i} = cameraListImages{i}(start_frames(i):start_frames(i)+num_frames(i),:)
+end
+
+%%=========================================================
+fprintf('Starting tracking loop:\n');
+% Global iteration loop
+k = g_candidates ^ 2; % Candidates per target
+valid_pairing_detections_c1 = {}; valid_pairing_detections_c2 = {};
+tau = 3;
+groups = {};
+
+for f = 1:(num_frames-1)
+    fprintf(['Frame ' num2str(f) ':\n']);
+    n = 0; % Number of targets in all cameras
+    k_total = 0; % Number of candidates in all cameras
+    targs = {}; % Actual targets from both cameras
+    cands = {}; % Candidates from both cameras
+    for c = 1:length(cameras)
+        a = allDetections{c}{start_frames(c)+f};
+        b = allDetections{c}{start_frames(c)+(f+1)}; % Get the next frame and its detections (i.e our candidates) for association with our targets
+        
+
+
+        targs{c} = zeros(size(a,1),10); cands{c} = zeros(size(b,1),10);
+        % Map targets at frame f or f+1 to the ground plane using homographies
+        for i=1:size(targs{c},1)
+            targ = a(i,:);
+            t = H(homographies{c},[targ(3)+targ(5)/2; targ(4)+targ(6)]);
+            targs{c}(i,:) = [targ t(1) t(2)];
+        end
+        for j=1:size(cands{c},1)
+            cand = b(j,:);
+            t = H(homographies{c},[cand(3)+cand(5)/2; cand(4)+cand(6)]);
+            cands{c}(j,:) = [cand t(1) t(2)];
+        end
+    end
+    n1 = size(targs{1},1); n2 = size(targs{2},1); n = n1 + n2;
+    k1 = size(cands{1},1); k2 = size(cands{2},1); k_total = k1 + k2; %k is already defined
+    % Initialize tracks
+    if f == 1
+      tracks_c1 = cell(n1,1);
+      tracks_c2 = cell(n2,1);
+      % Create ids and positions and motion models
+      % NOTE (id, x, y, vx, vy)
+      id = 1;
+      for i =1:n1
+        tracks_c1{i} = [id f 57 targs{1}(i,9:10) 0 0];
+        id = id + 1;
+      end
+      for i = 1:n2
+        tracks_c2{i} = [id f 58 targs{2}(i,9:10) 0 0];
+        id = id + 1;
+      end
+      tracks = vertcat(tracks_c1, tracks_c2);
+      first_tracks = tracks;
+    end
+
+
+
+
+end
 
 
 
