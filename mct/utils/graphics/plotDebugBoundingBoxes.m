@@ -6,7 +6,7 @@ function plotDebugBoundingBoxes(cameraListImages,allDetections,startframe,datase
     %  startframe: frame at which to display bounding boxes, displays the next 3
     %  dataset: tag for the dataset
 
-    if strcmp(dataset,'campus_2')
+    if strcmp(dataset,'campus_2') == 1
         for id=2:2
             index = 1;
             %startframe = 28 % Debug
@@ -17,14 +17,14 @@ function plotDebugBoundingBoxes(cameraListImages,allDetections,startframe,datase
                 title(['Frame: ' sprintf('%d',fi)]);
                 for frame=1:size(allDetections{id},1)
                     if allDetections{id}{frame}(1) == fi
-                        drawBBs(allDetections{id}{frame}(:,3:7),'g');
+                        drawBBs(allDetections{id}{frame}(:,3:7),'g',dataset);
                     end
                 end
                 index = index + 1;
             end
         end
     end
-    if strcmp(dataset,'hda')
+    if strcmp(dataset,'hda') == 1
         for id=1:2
             index = 1;
             offset = startframe + 3;
@@ -34,7 +34,7 @@ function plotDebugBoundingBoxes(cameraListImages,allDetections,startframe,datase
                 title(['Frame: ' sprintf('%d',fi)]);
                 for i=1:size(allDetections{id},1)
                     if allDetections{id}(i,2) == fi
-                        drawBBs(allDetections{id}(i,3:7),'g');
+                        drawBBs(allDetections{id}(i,3:7),'g',dataset);
                     end
                 end
                 index = index + 1;

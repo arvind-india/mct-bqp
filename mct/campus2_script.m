@@ -41,7 +41,7 @@ end
 identifyPotentialStaticObjects(allDetections);
 %%=======================================================
 % Plot images to show detections (with bounding boxes)
-figure; show_detections = 'slideshow';
+figure; show_detections = '4frames';
 if strcmp('slideshow', show_detections) == 1
     start_frame = 1;
     for start_frame = start_frame:4:sample_size
@@ -74,12 +74,15 @@ end
 
 
 %%==============================================================
-num_frames = [30 30]; % Number of frames
-start_frames = [1000 1200]; % Frames to start collecting images
+num_frames = [10 10]; % Number of frames
+start_frames = [1 1+offset_frames]; % Frames to start collecting images
 
 % Get subset of files from the cameraList sequence
 for i=1:length(cameras)
-    cameraListImages{i} = cameraListImages{i}(start_frames(i):start_frames(i)+num_frames(i),:)
+    cameraListImages{i} = cameraListImages{i}(:,start_frames(i):(start_frames(i)+num_frames(i)));
+    for j=1:length(cameraListImages{i})
+      cameraListImages{i}{j} = imread(cameraListImages{i}{j});
+    end
 end
 
 %%=========================================================
@@ -96,49 +99,110 @@ for f = 1:(num_frames-1)
     k_total = 0; % Number of candidates in all cameras
     targs = {}; % Actual targets from both cameras
     cands = {}; % Candidates from both cameras
+    
     for c = 1:length(cameras)
         a = allDetections{c}{start_frames(c)+f};
         b = allDetections{c}{start_frames(c)+(f+1)}; % Get the next frame and its detections (i.e our candidates) for association with our targets
         
-
-
-        targs{c} = zeros(size(a,1),10); cands{c} = zeros(size(b,1),10);
+        targs{c} = zeros(size(a,1),9); 
+        cands{c} = zeros(size(b,1),9);
         % Map targets at frame f or f+1 to the ground plane using homographies
         for i=1:size(targs{c},1)
             targ = a(i,:);
-            t = H(homographies{c},[targ(3)+targ(5)/2; targ(4)+targ(6)]);
+            t = H_alt(homographies{c},[targ(3)+targ(5)/2 targ(4)+targ(6)]);
             targs{c}(i,:) = [targ t(1) t(2)];
         end
         for j=1:size(cands{c},1)
             cand = b(j,:);
-            t = H(homographies{c},[cand(3)+cand(5)/2; cand(4)+cand(6)]);
+            t = H_alt(homographies{c},[cand(3)+cand(5)/2 cand(4)+cand(6)]);
             cands{c}(j,:) = [cand t(1) t(2)];
         end
     end
+
     n1 = size(targs{1},1); n2 = size(targs{2},1); n = n1 + n2;
     k1 = size(cands{1},1); k2 = size(cands{2},1); k_total = k1 + k2; %k is already defined
     % Initialize tracks
     if f == 1
-      tracks_c1 = cell(n1,1);
-      tracks_c2 = cell(n2,1);
-      % Create ids and positions and motion models
-      % NOTE (id, x, y, vx, vy)
+      tracks_c1 = cell(n1,1);tracks_c2 = cell(n2,1);
       id = 1;
       for i =1:n1
-        tracks_c1{i} = [id f 57 targs{1}(i,9:10) 0 0];
+        tracks_c1{i} = [id f 1000 targs{1}(i,8:9) 0 0];
         id = id + 1;
       end
       for i = 1:n2
-        tracks_c2{i} = [id f 58 targs{2}(i,9:10) 0 0];
+        tracks_c2{i} = [id f 2000 targs{2}(i,8:9) 0 0];
         id = id + 1;
       end
       tracks = vertcat(tracks_c1, tracks_c2);
       first_tracks = tracks;
     end
 
+    %---------------------------------------------------------------------------
+    fprintf('\t Computing appearance cues...\n');
+    % Compute local cues - appearance and motion
+    c_as = {};
+    for c = 1:length(cameras)
+
+      % c_a is coded row-wise that is x=0 y=0 y=1 y=2 y=3 y=4, x=1 y=0 etc...
+      [c_a, c_m, c_nm] = deal(zeros(n,1));
+      % Show the images for debug
+      figure; hold on;
+      % Draw the targets
+      subplot(3,1,1), subimage(cameraListImages{c}{start_frames(c)+f});
+      drawBBs(targs{c}(:,3:7), 'Yellow', 'campus_2'); % 3:7 because 7th position has the score from the CNN
+      title(['Targets in camera ' num2str(cameras{c})]);
+      % Draw the candidates
+      subplot(3,1,2), subimage(cameraListImages{c}{start_frames(c)+(f+1)});
+      title(['Candidates in camera ' num2str(cameras{c})]);
+      drawCandidateBBs(cands{c}(:,3:6), 'Green', 'campus_2', k);
+      [c_a, weights, Z, y] = appearanceConstraint_v2(k,size(cands{c},1),cands{c},cameraListImages{c}{start_frames(c)+(f+1)},'naive',lambda);
+      c_as{c} = c_a;
+      [~,m] = min(c_a');
+      hold on
+      for i=1:length(m)
+        x_c = fix(m(i)/g_candidates);
+        y_c = m(i)-1 - (x_c) * g_candidates;
+        cx = cands{c}(i,3) + (x_c-2) * cands{c}(i,5)/delta;
+        cy = cands{c}(i,4) + (y_c-2) * cands{c}(i,6)/delta;
+        rectangle('Position',[cx cy cands{c}(i,5:6)],'EdgeColor', 'Magenta', 'LineWidth', 1);
+      end
+    end
 
 
 
+
+    % TODO make this generic for more than 2 cameras
+    c_a = [repmat(c_as{1},1,n1) repmat(c_as{2},1,n2)];
+
+
+
+
+
+
+    % TODO we ignore the motion and neighbourhood, and neighbourhood motion cues here for now
+    Cg = zeros(n*k,n*k);
+    % For some reason Cg often has huge negative values so we normalize them for sanity sake
+    normCg = Cg - min(Cg(:));
+    if max(normCg(:)) ~= 0
+      normCg = normCg ./ max(normCg(:));
+    else
+      normCg = zeros(n*k,n*k);
+    end
+    
+    %---------------------------------------------------------------------------
+    fprintf('\t Solving Frank-Wolfe optimization...\n');
+    % Prepare inputs for Frank Wolfe (conditional gradient)
+    [H_,F,Aeq,Beq,labels] = FW_preamble(n,k,c_a,c_m,c_nm,normCg);
+    % Solve the problem using Frank Wolfe
+    [minx,minf,x_t,f_t,t1_end] = FW_crowd_wrapper(H_,F,Aeq,Beq,labels); % minx is the value we want
+    optimization_results = reshape(minx,k,[]);
+    %NOTE: Two candidates may be assigned to the same target
+    fprintf('\t Found optimal candidates for each target.\n');
+    %---------------------------------------------------------------------------
+    
+
+
+    kill;
 end
 
 

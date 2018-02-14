@@ -49,9 +49,9 @@ function allDetections = filterCNN(allDetections, inplanes)
     filename = fp_files(1);
     delimiterIn = ' ';
     headerlinesIn = 1;
-    systematic_wrong_detections{1} = importdata(filename,delimiterIn,headerlinesIn); systematic_wrong_detections{1} = systematic_wrong_detections{1}.data;
+    systematic_wrong_detections{1} = importdata('/home/pedro/mct-bqp/campus2_data/alameda_CNN_false_positives.txt',delimiterIn,headerlinesIn); systematic_wrong_detections{1} = systematic_wrong_detections{1}.data;
     filename = fp_files(2);
-    systematic_wrong_detections{2} = importdata(filename,delimiterIn,headerlinesIn); systematic_wrong_detections{2} = systematic_wrong_detections{2}.data;
+    systematic_wrong_detections{2} = importdata('/home/pedro/mct-bqp/campus2_data/central_CNN_false_positives.txt',delimiterIn,headerlinesIn); systematic_wrong_detections{2} = systematic_wrong_detections{2}.data;
     error_variance = [10 10]; %Means that it checks for any bb's within this range (in pixels)
     for id=1:length(cameras)
         for frame=1:size(allDetections{id},1)

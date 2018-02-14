@@ -251,7 +251,7 @@ for f = 1:(num_frames-1)
       xticks(1:k);
 
     end
-    % TODO make this genetic for more than 2 cameras
+    % TODO make this generic for more than 2 cameras
     c_a = [repmat(c_as{1},1,n1) repmat(c_as{2},1,n2)];
 
     c_nm = zeros(1,n*k);
@@ -357,6 +357,7 @@ for f = 1:(num_frames-1)
     % Solve the problem using Frank Wolfe
     [minx,minf,x_t,f_t,t1_end] = FW_crowd_wrapper(H_,F,Aeq,Beq,labels); % minx is the value we want
     % Get chunk of k candidates for target i and see which one was picked
+
     optimization_results = reshape(minx,k,[]);
     %NOTE: Two targets may be assigned to the same target
     fprintf('\t Found optimal candidates for each target.\n');

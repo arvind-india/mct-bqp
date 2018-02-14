@@ -23,6 +23,8 @@ global offset
 % Offset camera Central to the camera Alameda (Central is 40s later)
 offset = 40; % seconds
 
+global offset_frames
+offset_frames = ceil(offset/fps);
 %-------------------------------------------------------------------------------
 % The parameters 'nPerOct', 'nOctUp', 'nApprox', 'lambdas', 'pad', 'minDs'
 % modify the channel feature pyramid created (see help of chnsPyramid.m for
@@ -76,16 +78,22 @@ NMS_maxoverlap = [0.9 1.0];
 
 %-------------------------------------------------------------------------------
 global order
-order = 'toolbox';
+order = 'cardinal';
 
 global cpu_results
-cpu_results = '~/mct-bqp/campus2_data/CPU/CNNdets_';
+cpu_results = '/home/pedro/mct-bqp/campus2_data/CPU/CNNdets_';
 
 global gpu_results
-gpu_results = '~/mct-bqp/campus2_data/GPU/CNNdets_';
+gpu_results = '/home/pedro/mct-bqp/campus2_data/GPU/CNNdets_';
+
+global alameda_folder
+alameda_folder = '~/Campus_II/frames_alameda_noon_1_6_2017';
+
+global central_folder 
+central_folder = '~/Campus_II/frames_central_noon_1_6_2017';
 
 global fp_files
-fp_files = ['~/mct-bqp/campus2_data/alameda_CNN_false_positives.txt', '~/mct-bqp/campus2_data/central_CNN_false_positives.txt'];
+fp_files = ['/home/pedro/mct-bqp/campus2_data/alameda_CNN_false_positives.txt', '/home/pedro/mct-bqp/campus2_data/central_CNN_false_positives.txt'];
 
 global use_GPU
 use_GPU = [0 0];

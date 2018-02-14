@@ -6,7 +6,7 @@ function plotDetectionsCameraSpace(cameraListImages,allDetections,dataset)
     %  dataset: tag for the dataset
     
     if strcmp(dataset,'campus_2')
-        setCaptureParams_campus2;
+        setDetectionParams_campus2;
         figure
         for id=1:2
             subplot(2,1,id);
@@ -22,7 +22,7 @@ function plotDetectionsCameraSpace(cameraListImages,allDetections,dataset)
         end
     end
     if strcmp(dataset, 'hda')
-        setCaptureParams_hda_elevator;
+        setDetectionParams_hda_elevator;
         figure
         for id=1:2
             subplot(2,1,id);

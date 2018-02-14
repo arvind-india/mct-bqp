@@ -4,7 +4,7 @@ function identifyPotentialStaticObjects(allDetections)
   % Plot 3D frames
   figure
   hold on
-  dets = allDetections{1}
+  dets = allDetections{1};
   for i=1:size(dets,1)
     for j=1:size(dets{i},1)
       line = dets{i}(j,:);
