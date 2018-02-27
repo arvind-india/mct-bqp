@@ -24,22 +24,28 @@ groups = {};
 N = 0; % Number of targets in all cameras
 K = 0; % Number of candidates in all cameras (must be a multiple of k)
 for f = 1:(num_frames - 1)
+    next_images = cell(2,1); images = cell(2,1);
+    next_images{1} = imread(cameraListImages{i}{start_frames(i)+(f+1)});
+    image{1} = imread(cameraListImages{i}{start_frames(i)+(f)});
+    next_image = imread(cameraListImages{i}{start_frames(i)+(f+1)});
+    image = imread(cameraListImages{i}{start_frames(i)+(f)});
     %---------------------------------------------------------------------------
     fprintf(['Frame ' num2str(f) ':\n']);
     fprintf('\t Getting targets...\n');
     if f == 1
-        targs = cell(2,1); % Actual targets from both cameras
+        targs = cell(2,1); % TODO Actual targets from both cameras
+        for id = 1:length(cameras)
+            targs{id} = gnd_detections{id}{start_frames(id) + f};
+        end
+        targs = cell2mat(targs);
+        % targs = cell2mat(targs'); % For some reason this work on one computer and on the other one does not
     end
-    for id = 1:length(cameras)
-        targs{id} = gnd_detections{id}{start_frames(id) + f};
-    end
-    targs = cell2mat(targs');
     targs_percam = (accumarray(targs(:,1),(1:size(targs,1)).',[],@(x){targs(x,:)},{}));
     N = size(targs,1); K = N * k;
     cands = cell(N,1); cands_homo = cands; % Candidates from both cameras for each target, always empty each frame
     cands_percam = cell(2,1); cands_homo_percam = cands_percam;
     %---------------------------------------------------------------------------
-    % Sample around the targets. We then use these candidates on the next frame
+    % TODO Sample around the targets. We then use these candidates on the next frame
     fprintf('\t Sampling candidates...\n');
     for t = 1:size(targs,1)
         t_rect = targs(t,4:7);
@@ -61,7 +67,7 @@ for f = 1:(num_frames - 1)
     % TODO check for potential new targets to add from the detections
     fprintf('\t Checking for potential new targets...\n');
     %---------------------------------------------------------------------------
-    % TODO store the ones that are ambiguous for homography correction in targs_in_overlap
+    % TODO store the ones that are ambiguous for homography correction in targs_in_overlap (i.e gating part 1)
     fprintf('\t Checking for targets in the overlapping regions...\n');
     %figure; hold on;
     %for i = 1:length(cameras)
@@ -76,20 +82,19 @@ for f = 1:(num_frames - 1)
             targs_in_overlap{end+1} = targs(t,:);
         end
     end
-
-
+    targs_in_overlap = cell2mat(targs_in_overlap');
+    targs_in_overlap = (accumarray(targs_in_overlap(:,1),(1:size(targs_in_overlap,1)).',[],@(x){targs_in_overlap(x,:)},{}));
     %---------------------------------------------------------------------------
     % TODO appearance
     fprintf('\t Computing apperance cues...\n');
     a = cell(length(cameras),1);
     for i = 1:length(cameras)
         n = size(targs_percam{i},1);
-        next_image = imread(cameraListImages{i}{start_frames(i)+(f+1)});
-        image = imread(cameraListImages{i}{start_frames(i)+(f)});
+
         [c_a, w, Z, y] = appearance(k,n,targs_percam{i},cands_percam{i},image,next_image,'naive',lambda);
         a{i} = c_a;
         %--------------------------------
-        plotAppeance(c_a,i,n,k,cameraListImages,f,targs_percam,cameras,cands_percam, start_frames);
+        %plotAppeance(c_a,i,n,k,cameraListImages,f,targs_percam,cameras,cands_percam, start_frames);
     end
     a = cell2mat(a);
     %---------------------------------------------------------------------------
@@ -98,7 +103,7 @@ for f = 1:(num_frames - 1)
     motion_models = cell(N,1);
     if f == 1
         for t = 1:size(targs,1)
-            motion_models{t} = [targs(t,8); targs(t,9); 0; 0];
+            motion_models{t} = [targs(t,8); targs(t,9); 50; 0];
         end
     end
     %--------------------------------
@@ -149,22 +154,31 @@ for f = 1:(num_frames - 1)
     % NOTE Show previous target location
     % NOTE Show all sampled candidates
     % NOTE Show best candidate
+    test_cam = 2;
+    title(['t+1 Candidates (BB) in camera ' cameras{test_cam}]);
+    imshow(cameraListImages{test_cam}{start_frames(test_cam)+f});
+    %drawCandidateBBs(cell2mat(transpose(cands_percam{test_cam})), 'Green', 'hda', k);
+    drawBBs(targs_percam{test_cam}(:,4:7), 'Yellow', 'hda');
     for i=1:N
         for j=1:k
-            if optimization_results(i,j) == 1
-
+            if optimization_results(j,i) == 1
+                % DEBUG
+                if i > 3
+                    rectangle('Position',cands{i}(j,:),'EdgeColor', 'Red', 'LineWidth', 1);
+                end
             end
         end
     end
+
+    % TODO Build Score matrix (how to generalize this to n cameras? NP-hard assignment problem?)
+    n_ov1 = size(targs_in_overlap{1},1);
+    n_ov2 = size(targs_in_overlap{2},1);
+    [S, A, P, V] = createScoreMatrix(n_ov1,n_ov2,targs_in_overlap,images,d1_metric,d256_metric);
+    % TODO Gating (i.e gating part2)
+
     kill;
-    % TODO disambiguate between targets that are in the overlapping region
-
-    % TODO Build Score matrix
-
-    % TODO Gating
-
     %---------------------------------------------------------------------------
-    % TODO Target Coupling
+    % TODO Target Coupling (disambiguate between targets that are in the overlapping region)
     fprintf('\t Target Coupling/Disambiguation...\n');
 
     % TODO correct homographies and ALL detections using these homographies
@@ -176,5 +190,6 @@ for f = 1:(num_frames - 1)
 
     % TODO clear targets, use the predicted ones as new targets
     %---------------------------------------------------------------------------
+
     kill;
 end

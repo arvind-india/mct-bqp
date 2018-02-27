@@ -2,7 +2,7 @@ function c_m = motion(n,k,motion_models,cands_homo_percam,fps)
     c_m = cell(n,1);
     dt = 1.0/fps;
     A = [1 dt; 1 dt];
-    Sigma = [100 0; 0 100];
+    Sigma = [15 0; 0 15];
     for i = 1:n
         gaussian_center = [A(1,1) * motion_models{i}(1) + A(1,2) * motion_models{i}(3) ...
         A(2,1) * motion_models{i}(2) + A(2,2) * motion_models{i}(4)];

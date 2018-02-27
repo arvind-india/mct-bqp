@@ -21,7 +21,7 @@ global lambda
 lambda = 0.1; % variable for the appearance cues
 
 global zeta
-zeta = 0.3; % weight of the motion constraint
+zeta = 1.0; % weight of the motion constraint
 
 
 global score_threshold
