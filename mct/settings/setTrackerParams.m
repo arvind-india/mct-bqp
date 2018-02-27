@@ -14,7 +14,6 @@ FW_duality_gap = 2; % This sets the duality gap and you can change it if you wan
 global FW_eps
 FW_eps = 1e-12; % (eps in matlab = 1e-16) not sure why this is needed
 
-
 global g_candidates
 g_candidates = 5; % basis for the number of candidates
 
@@ -24,8 +23,6 @@ lambda = 0.1; % variable for the appearance cues
 global zeta
 zeta = 0.3; % weight of the motion constraint
 
-global eta
-eta = 0.2; % weight of the neighbourhood motion constraint
 
 global score_threshold
 score_threshold = 0.5;
@@ -40,4 +37,4 @@ global gating_distance
 gating_distance = 6.0; % This does actually correspond to 6 meters
 
 global delta
-delta = 10;
+delta = 10; % For the shifting of bounding boxes in candidate sampling

@@ -12,7 +12,7 @@
 	sudo apt install nvidia-cuda-toolkit
 	nvcc --version
 ```
-This will succeed but from my experience won't give you good enough results. Follow this http://www.pradeepadiga.me/blog/2017/03/22/installing-cuda-toolkit-8-0-on-ubuntu-16-04/ to get a working solution. You may install cuda-9.0.
+This will succeed but from my experience won't give you good enough results. Follow this http://www.pradeepadiga.me/blog/2017/03/22/installing-cuda-toolkit-8-0-on-ubuntu-16-04/ to get a working solution. You may install cuda-9.0. If you don't install with `apt-get` then you may have to add an export PATH to your bashrc.
 
 3. ATLAS/BLAS:
 ```
@@ -51,7 +51,7 @@ to:
 // using std::signbit;
 DEFINE_CAFFE_CPU_UNARY_FUNC(sgnbit, y[i] = std::signbit(x[i]));
 ```
-In Makefile change `CXXLIBS="$$CXXLIBS $(LDFLAGS)" -o $@` to `CXXLIBS="$$CXXLIBS $(STATIC_NAME) $(LDFLAGS)" -output $@`. Even if you get warnings, if you get `MEX compiled successfully` it worked.
+When trying to compile by using `sudo make matcaffe` Makefile change `CXXLIBS="$$CXXLIBS $(LDFLAGS)" -o $@` to `CXXLIBS="$$CXXLIBS $(STATIC_NAME) $(LDFLAGS)" -output $@`. Even if you get warnings, if you get `MEX compiled successfully` it worked.
 
 * Then follow the steps (if you get key=-2 at the end it means everything was installed correctly)
 ```

@@ -12,14 +12,14 @@ function allDetections = CNNdetect(cameraListImages,sample_size)
     allDetections = cell(length(cameras),1); % Run detections on the whole dataset for both camera and store detections per frame on an outside file
 
     for id = 1:length(cameras)
-        
+
         directory_not_exists = 0;
         if use_GPU(id) == 1
-            if ~exist([gpu_results sprintf('%02d', id) '.txt'], 'file')
+            if ~exist([gpu_results cameras{id} '.txt'], 'file')
                 directory_not_exists = 1;
             end
         else
-            if ~exist([cpu_results sprintf('%02d', id) '.txt'], 'file')
+            if ~exist([cpu_results cameras{id} '.txt'], 'file')
                 directory_not_exists = 1;
             end
         end
@@ -28,6 +28,9 @@ function allDetections = CNNdetect(cameraListImages,sample_size)
             [~, detector, rcnn_model, cl2, PersonW, PersonB] = loadCNN(LDCF_cascThr(id),LDCF_cascCal(id),LDCF_rescale(id), use_GPU(id));
             %==========================================================
             allDetections{id} = cell(sample_size,1);
+            if sample_size == -1
+                sample_size = length(cameraListImages{id});
+            end
             for i = 1:sample_size
                 disp(['Frame ' sprintf('%d',i) '.Percentage done: ' sprintf('%f',i/sample_size)]);
                 img = imread(cameraListImages{id}{i});
@@ -58,12 +61,12 @@ function allDetections = CNNdetect(cameraListImages,sample_size)
                 allDetections{id}{i} = dets;
 
             end
-            disp(['Camera ' sprintf('%d',id) ' is done']);
+            disp(['Camera ' cameras{id} ' is done']);
             %Transform detections to a file so we can load faster in the future
             if use_GPU(id) == 1
-        	       fileID = fopen([gpu_results sprintf('%02d', id) '.txt'],'w');
+        	       fileID = fopen([gpu_results cameras{id} '.txt'],'w');
             else
-        	       fileID = fopen([cpu_results sprintf('%02d', id) '.txt'],'w');
+        	       fileID = fopen([cpu_results cameras{id} '.txt'],'w');
             end
         	formatSpec = '%d,%d,%4.5f,%4.5f,%4.5f,%4.5f,%1.5f\n';
         	for i=1:sample_size
@@ -75,9 +78,9 @@ function allDetections = CNNdetect(cameraListImages,sample_size)
         else
             % load the file
             if use_GPU(id) == 1
-        	       filename = [gpu_results sprintf('%02d', id) '.txt'];
+        	       filename = [gpu_results cameras{id} '.txt'];
             else
-        	       filename = [cpu_results sprintf('%02d', id) '.txt'];
+        	       filename = [cpu_results cameras{id} '.txt'];
             end
             fileID = fopen(filename);
         	file = textscan(fileID,'%d%d%f%f%f%f%f','Delimiter',',');

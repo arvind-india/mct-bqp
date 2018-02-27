@@ -7,7 +7,7 @@ global image_directories
 image_directories = {'~/Campus_II/frames_alameda_noon_1_6_2017', '~/Campus_II/frames_central_noon_1_6_2017'};
 
 global homography_directory
-homography_directory = '~/Campus_II/homography_campus_II.mat';
+homography_directory = '~/mct-bqp/campus2_data/homographies/homography_campus_II.mat';
 
 global fps
 fps = 9;
@@ -52,7 +52,7 @@ LDCF_cascThr = [-1 -1];
 % .cascCal    - [] cascade calibration (affects speed/accuracy)
 global LDCF_cascCal
 % 0.020 0.025 0.030 0.035
-LDCF_cascCal = [0.030 0.031];
+LDCF_cascCal = [0.029 0.028];
 
 % .rescale    - [] rescale entire detector by given ratio, irreversible
 global LDCF_rescale
@@ -60,17 +60,17 @@ LDCF_rescale = [1.0 1.0];
 
 % .pNms       - [] params for non-maximal suppression (see bbNms.m)
 global pNMS_overlap
-pNMS_overlap = [0.9 1.0];
+pNMS_overlap = [1.0 1.0];
 
 % .stride     - [] spatial stride between detection windows
 global LDCF_stride
-LDCF_stride = [4 4];
+LDCF_stride = [1 1];
 
 %-------------------------------------------------------------------------------
 % The following are used to filter out the CNN detections
 global score_threshold
 % 0.25 0.5 0.75 1.0
-score_threshold = [0.6 0.5];
+score_threshold = [0.8 0.6];
 
 global NMS_maxoverlap
 % 0.25 0.5 0.75 0.9
@@ -81,19 +81,22 @@ global order
 order = 'cardinal';
 
 global cpu_results
-cpu_results = '/home/pedro/mct-bqp/campus2_data/CPU/CNNdets_';
+cpu_results = '/home/pedro/mct-bqp/campus2_data/detections-camplane/CPU/dets_';
 
 global gpu_results
-gpu_results = '/home/pedro/mct-bqp/campus2_data/GPU/CNNdets_';
+gpu_results = '/home/pedro/mct-bqp/campus2_data/detections-camplane/GPU/dets_';
 
 global alameda_folder
 alameda_folder = '~/Campus_II/frames_alameda_noon_1_6_2017';
 
-global central_folder 
+global central_folder
 central_folder = '~/Campus_II/frames_central_noon_1_6_2017';
 
+global regions_folder
+regions_folder = '~/mct-bqp/campus2_data/regions/';
+
 global fp_files
-fp_files = ['/home/pedro/mct-bqp/campus2_data/alameda_CNN_false_positives.txt', '/home/pedro/mct-bqp/campus2_data/central_CNN_false_positives.txt'];
+fp_files = ['/home/pedro/mct-bqp/campus2_data/FP-filter/alameda_CNN_false_positives.txt', '/home/pedro/mct-bqp/campus2_data/FP-filter/central_CNN_false_positives.txt'];
 
 global use_GPU
-use_GPU = [0 0];
+use_GPU = [1 1];
