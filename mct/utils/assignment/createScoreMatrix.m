@@ -2,8 +2,8 @@ function [S, A, P, V] = createScoreMatrix(n_ov1,n_ov2,targs_overlap,images,d1_me
     S = zeros(n_ov1,n_ov2); A = zeros(n_ov1,n_ov2);
     P = zeros(n_ov1,n_ov2); V = zeros(n_ov1,n_ov2);
 
-    for i11=1:n_ov1
-        for i22=1:n_ov2
+    for a=1:n_ov1
+        for b=1:n_ov2
 
             % TODO Euclidean Distance
             p1 = targs_overlap{1}(n_ov1,8:9);
@@ -29,7 +29,14 @@ function [S, A, P, V] = createScoreMatrix(n_ov1,n_ov2,targs_overlap,images,d1_me
             appearance_score = pdist2(I1',I2',d256_metric);
             A(a,b) = (1/3)*sum(appearance_score(:,1),1) / (256*max(appearance_score(:,1))) + (1/3)*sum(appearance_score(:,2),1)/(256*max(appearance_score(:,2))) + (1/3)* sum(appearance_score(:,3),1)/(256*max(appearance_score(:,3)));
 
-            %TODO Ground plane mapped bounding box overlap ?
+            %TODO Ground plane mapped bounding box overlap ? ofc this performs better as homographies improve
+            % Is this a good approach? Ground plane is a birds eye view so this mapping might not be correct
+            % TODO Map 4 corners of target a to the ground plane
+            % TODO Map 4 corners of target b to the ground plane
+            % Compute area of intersection
+            % Compute area of intersection
+
+            %iou = area_intersection/area_union;
         end
     end
     %S = A + V + P;

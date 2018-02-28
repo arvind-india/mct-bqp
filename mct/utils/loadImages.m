@@ -11,7 +11,7 @@ function cameraListImages = loadImages(cameras, image_directory, num_frames, sta
             end
             %cameraListImages{i} = cell(sample_size,1);
             for j=start_frame(i):(start_frame(i) + num_frames(i))
-                cameraListImages{i}{j} = imread(strcat(direct{1}, '/', num2str(j), '.png'));
+                cameraListImages{i}{j} = strcat(direct{1}, '/', num2str(j), '.png');
             end
         end
     elseif strcmp(dataset, 'campus2')

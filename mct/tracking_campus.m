@@ -1,7 +1,7 @@
 setDetectionParams_campus2;
 setTrackerParams;
 
-gnd_detections = load_data();
+gnd_detections = load_data('campus2');
 % Load the images (needed for the appearance cues)
 cameraListImages = cell(2,1); inplanes = cell(2,1);
 for i=1:length(cameras)

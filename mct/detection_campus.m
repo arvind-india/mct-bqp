@@ -51,7 +51,7 @@ for i=1:length(cameras)
             t = H_alt(homographies{i}, [detections{i}{j}(d,3)+detections{i}{j}(d,5)/2 detections{i}{j}(d,4)+detections{i}{j}(d,6)]); % Get cam plane coordinates
             gnd_detections{i}{j}(d,1) = i;
             gnd_detections{i}{j}(d,2:7) = detections{i}{j}(d,1:6);
-            
+
             % NOTE this converts from detection indexes to per cam post filtering indexes
             gnd_detections{i}{j}(d,3) = d;
 

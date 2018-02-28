@@ -1,9 +1,9 @@
-function gnd_detections = load_data()
+function gnd_detections = load_data(dataset)
     % load the detections file
     setDetectionParams_campus2;
     gnd_detections = cell(2,1);
     for id = 1:length(cameras)
-        filename_g = ['/home/pedro/mct-bqp/campus2_data/detections-gndplane/' cameras{id} '.txt'];
+        filename_g = ['/home/pedro/mct-bqp/' dataset '_data/detections-gndplane/' cameras{id} '.txt'];
         temp_g = csvread(filename_g);
         for i=1:size(temp_g,1)
             gnd_detections{id}{i} = temp_g(i,:);
