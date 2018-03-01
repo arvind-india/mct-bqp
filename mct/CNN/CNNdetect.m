@@ -27,12 +27,12 @@ function allDetections = CNNdetect(cameraListImages,sample_size)
             %==========================================================
             [~, detector, rcnn_model, cl2, PersonW, PersonB] = loadCNN(LDCF_cascThr(id),LDCF_cascCal(id),LDCF_rescale(id), use_GPU(id));
             %==========================================================
-            allDetections{id} = cell(sample_size,1);
             if sample_size == -1
                 sample_size = length(cameraListImages{id});
             end
+            allDetections{id} = cell(sample_size,1);
             for i = 1:sample_size
-                disp(['Frame ' sprintf('%d',i) '.Percentage done: ' sprintf('%f',i/sample_size)]);
+                disp(['Camera' cameras{id} ' Frame ' sprintf('%d',i) '.Percentage done: ' sprintf('%f',i/sample_size)]);
                 img = imread(cameraListImages{id}{i});
                 % detect possible pedestrians with LDCF1
                 bbs = acfDetect(img,detector);

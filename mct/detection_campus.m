@@ -9,7 +9,7 @@ for i=1:length(cameras)
     cameraListImages{i} = loadImages(cameras, image_directories{i}, 0, i, 'campus2');
     inplanes{i} = dlmread(strcat(regions_folder, cameras{i}, '.txt'));
 end
-sample_size = 10; % -1 means all
+sample_size = -1; % -1 means all
 detections = CNNdetect(cameraListImages, sample_size);
 
 % Parse for systematic error detections and remove all empty cells

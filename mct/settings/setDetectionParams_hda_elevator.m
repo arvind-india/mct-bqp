@@ -2,8 +2,11 @@
 global cameras
 cameras = {57, 58};
 
-global image_directory
-image_directory = {'~/mct-bqp/hda_data/images/cam'};
+global hdaRootDirectory
+hdaRootDirectory = '~/HDA_Dataset_V1.3';
+
+global image_directories
+image_directories = {'~/HDA_Dataset_V1.3/images/cam57/', '~/HDA_Dataset_V1.3/images/cam58/'};
 
 global crops_directories
 crops_directories = {'~/mct-bqp/hda_data/filtered_crops/'};
@@ -39,10 +42,10 @@ global ground_truth
 ground_truth = {strcat('~/mct-bqp/hda_data/ground_truth/', pedestrian_detector, '/allG_cam', int2str(cameras{1}), '.txt'), strcat('~/mct-bqp/hda_data/ground_truth/', pedestrian_detector, '/allG_cam', int2str(cameras{2}), '.txt')};
 
 global visibility_regions_directory
-visibility_regions_directory = '~/mct-bqp/hda_data/homographies/visibility_points_image_';
+visibility_regions_directory = '~/mct-bqp/hda_data/regions/visibility_points_image_';
 
 global floor_image
-floor_image = '~/mct-bqp/hda_data/images/7th_floor_ground_plane_reference_frame_map.png';
+floor_image = '~/mct-bqp/hda_data/regions/7th_floor_ground_plane_reference_frame_map.fig';
 
 global elevator_patio
 elevator_patio = [198,167,100,100];

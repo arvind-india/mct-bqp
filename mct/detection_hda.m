@@ -11,7 +11,7 @@ for i=1:length(cameras)
 end
 
 detect_mode = 'GT'; % GT, CNN, ACF
-
+detections = cell(2,1);
 if strcmp(detect_mode,'GT') == 1
     % TODO Get ground truth
     gt = cell(length(cameras),1);
@@ -19,8 +19,26 @@ if strcmp(detect_mode,'GT') == 1
       nmVbb = [hdaRootDirectory '/hda_annotations/cam' int2str(cameras{c}) '.txt'];
       annotations = vbb('vbbLoad', nmVbb);
       gt{c} = annotations.objLists;
+      for t = 1:length(gt{c})
+          detections{c}{t} = {};
+          for m = 1:size(gt{c}{t},2)
+              s = gt{c}{t}(m);
+              if s.occl == 0 % Valid detection
+                  detections{c}{t}{end+1} = [c t s.id s.pos];
+              end
+          end
+          if ~isempty(detections{c}{t})
+              detections{c}{t} = cell2mat(transpose(detections{c}{t}));
+          end
+      end
     end
-    detections = gt;
+
+    for c = 1:length(cameras)
+        figure; hold on;
+        for t = 1:length(detections{c})
+            plot(t,size(detections{c}{t},1),'+');
+        end
+    end
 elseif strcmp(detect_mode,'CNN') == 1
     % TODO Get DeepPed detections
 
@@ -33,13 +51,13 @@ end
 
 [homographies, invhomographies] = loadHomographies(homography_directory,'hda');
 
-ground_plane_regions = computeGroundPlaneRegions(outlier_removal_regions, homographies, length(cameras), 'hda');
+ground_plane_regions = computeGroundPlaneRegions(inplanes, homographies, length(cameras), 'hda');
 openfig(floor_image); hold on;
 colors = {'Red','Blue'};
 for i=1:length(cameras)
     drawPoly(ground_plane_regions{i},colors{i},0.5,false); % Draw regions
 end
-
+kill;
 %%===============================================================
 % Convert all cam plane regions and store them if they don't exist already (this is the input to the tracker)
 for i=1:length(cameras)
