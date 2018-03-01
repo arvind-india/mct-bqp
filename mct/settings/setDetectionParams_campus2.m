@@ -24,7 +24,7 @@ global offset
 offset = 40; % seconds
 
 global offset_frames
-offset_frames = ceil(offset/fps);
+offset_frames = offset * fps;
 %-------------------------------------------------------------------------------
 % The parameters 'nPerOct', 'nOctUp', 'nApprox', 'lambdas', 'pad', 'minDs'
 % modify the channel feature pyramid created (see help of chnsPyramid.m for

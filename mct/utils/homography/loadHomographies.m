@@ -1,4 +1,4 @@
-function [homographies, invhomographies] = loadHomographies_hda(filename, dataset)
+function [homographies, invhomographies] = loadHomographies(filename, dataset, cameras)
     % Given a filename, load homographies
     % Inputs
     %  filename: filename with homographies
@@ -8,7 +8,6 @@ function [homographies, invhomographies] = loadHomographies_hda(filename, datase
     %  homographies: 3x3 homography matrices
     %  invhomographies: 3x3 inverse of the previous homographies
     if strcmp(dataset, 'hda') == 1
-        setDetectionParams_hda_elevator; % Needed to get cameras datastructure
         for i=1:length(cameras)
             homographies{i} = dlmread(strcat(filename, '/cam', num2str(cameras{i}), 'homography.txt'));
             invhomographies{i} = inv(homographies{i});

@@ -29,17 +29,18 @@ for i=1:length(cameras)
 end
 
 % Load homographies, these homographies where obtained via the use of cp2tform
-[homographies, invhomographies] = loadHomographies(homography_directory,'campus_2'); % Defined in global variables
+[homographies, invhomographies] = loadHomographies(homography_directory,'campus_2', cameras); % Defined in global variables
 
 %%==============================================================
 ground_plane_regions = computeGroundPlaneRegions(inplanes, homographies, length(cameras), 'campus_2');
 clf;
 figure; hold on;
-colors = {'Red','Blue'};
+colors = {'Red','Blue','Black'};
 for i=1:length(cameras)
     drawPoly(ground_plane_regions{i},colors{i},0.5,false);
 end
-
+[overlap, ~, ~] = computeOverlap(ground_plane_regions);
+drawPoly(overlap,colors{3},1.0,false);
 %%===============================================================
 % Convert all cam plane regions and store them if they don't exist already (this is the input to the tracker)
 for i=1:length(cameras)

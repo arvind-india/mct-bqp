@@ -1,34 +1,32 @@
 setDetectionParams_campus2;
 setTrackerParams;
 
-gnd_detections = load_data('campus2');
+gnd_detections = load_data('campus2', cameras);
 % Load the images (needed for the appearance cues)
 cameraListImages = cell(2,1); inplanes = cell(2,1);
 for i=1:length(cameras)
     cameraListImages{i} = loadImages(cameras, image_directories{i}, 0, i, 'campus2');
     inplanes{i} = dlmread(strcat(regions_folder, cameras{i}, '.txt'));
 end
-[homographies, invhomographies] = loadHomographies(homography_directory,'campus_2'); % Defined in global variables
+[homographies, invhomographies] = loadHomographies(homography_directory,'campus_2', cameras); % Defined in global variables
 ground_plane_regions = computeGroundPlaneRegions(inplanes, homographies, length(cameras), 'campus_2');
 [overlap, ~, ~] = computeOverlap(ground_plane_regions);
-region_colors = {'Red','Blue','Black'};
 
 %%=========================================================
 fprintf('Starting tracking loop:\n');
 num_frames = 10; % Number of frames
 start = 0;
-start_frames = [start start+offset_frames]; % Frames to start collecting images
+start_frames = [start start + offset_frames]; % Frames to start collecting images
 k = g_candidates ^ 2; % Candidates per target
 tau = 3;
 groups = {};
 N = 0; % Number of targets in all cameras
-K = 0; % Number of candidates in all cameras (must be a multiple of k)
 for f = 1:(num_frames - 1)
-    next_images = cell(2,1); images = cell(2,1);
-    next_images{1} = imread(cameraListImages{i}{start_frames(i)+(f+1)});
-    image{1} = imread(cameraListImages{i}{start_frames(i)+(f)});
-    next_image = imread(cameraListImages{i}{start_frames(i)+(f+1)});
-    image = imread(cameraListImages{i}{start_frames(i)+(f)});
+    next_images = cell(length(cameras),1); images = cell(length(cameras),1);
+    for i = 1:length(cameras)
+        next_images{i} = imread(cameraListImages{i}{start_frames(i)+(f+1)});
+        images{i} = imread(cameraListImages{i}{start_frames(i)+(f)});
+    end
     %---------------------------------------------------------------------------
     fprintf(['Frame ' num2str(f) ':\n']);
     fprintf('\t Getting targets...\n');
@@ -39,9 +37,13 @@ for f = 1:(num_frames - 1)
         end
         targs = cell2mat(targs);
         % targs = cell2mat(targs'); % For some reason this work on one computer and on the other one does not
+        % TODO If the targets are empty on the first frame, can't track
+        if isempty(targs)
+            error('Cannot possibly track if there are no detections on the first given frame');
+        end
     end
     targs_percam = (accumarray(targs(:,1),(1:size(targs,1)).',[],@(x){targs(x,:)},{}));
-    N = size(targs,1); K = N * k;
+    N = size(targs,1);
     cands = cell(N,1); cands_homo = cands; % Candidates from both cameras for each target, always empty each frame
     cands_percam = cell(2,1); cands_homo_percam = cands_percam;
     %---------------------------------------------------------------------------
@@ -69,15 +71,9 @@ for f = 1:(num_frames - 1)
     %---------------------------------------------------------------------------
     % TODO store the ones that are ambiguous for homography correction in targs_in_overlap (i.e gating part 1)
     fprintf('\t Checking for targets in the overlapping regions...\n');
-    %figure; hold on;
-    %for i = 1:length(cameras)
-    %    drawPoly(ground_plane_regions{i},region_colors{i},0.5,false);
-    %end
 
-    %drawPoly(overlap,region_colors{3},1.0,false);
     targs_in_overlap = {};
     for t = 1:size(targs,1)
-        %plot(targs(t,8),targs(t,9),'+','MarkerEdgeColor',region_colors{targs(t,1)},'linewidth',1);
         if polyin([targs(t,8) targs(t,9)],overlap)
             targs_in_overlap{end+1} = targs(t,:);
         end
@@ -91,7 +87,7 @@ for f = 1:(num_frames - 1)
     for i = 1:length(cameras)
         n = size(targs_percam{i},1);
 
-        [c_a, w, Z, y] = appearance(k,n,targs_percam{i},cands_percam{i},image,next_image,'naive',lambda);
+        [c_a, w, Z, y] = appearance(k,n,targs_percam{i},cands_percam{i},images{i},next_images{i},'naive',lambda);
         a{i} = c_a;
         %--------------------------------
         %plotAppeance(c_a,i,n,k,cameraListImages,f,targs_percam,cameras,cands_percam, start_frames);
