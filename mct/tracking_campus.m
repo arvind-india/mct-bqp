@@ -15,8 +15,8 @@ ground_plane_regions = computeGroundPlaneRegions(inplanes, homographies, length(
 %%=========================================================
 fprintf('Starting tracking loop:\n');
 num_frames = 10; % Number of frames
-start = 0;
-start_frames = [start start + offset_frames]; % Frames to start collecting images
+start = 108;
+start_frames = [start + offset_frames start]; % Frames to start collecting images
 k = g_candidates ^ 2; % Candidates per target
 tau = 3;
 groups = {};
@@ -165,20 +165,30 @@ for f = 1:(num_frames - 1)
             end
         end
     end
-
+    %---------------------------------------------------------------------------
+    fprintf('\t Performing inter-camera disambiguation...\n');
+    % NOTE METHOD ONE OF INTER-CAMERA ASSIGNMENT
     % TODO Build Score matrix (how to generalize this to n cameras? NP-hard assignment problem?)
     n_ov1 = size(targs_in_overlap{1},1);
     n_ov2 = size(targs_in_overlap{2},1);
     [S, A, P, V] = createScoreMatrix(n_ov1,n_ov2,targs_in_overlap,images,d1_metric,d256_metric);
     % TODO Gating (i.e gating part2)
+    for a = 1:n_ov1
+        for b = 1:n_ov2
+            if P(a,b) > gating_distance
+                S(a,b) = 1000000;
+            end
+        end
+    end
 
-    kill;
-    %---------------------------------------------------------------------------
     % TODO Target Coupling (disambiguate between targets that are in the overlapping region)
-    fprintf('\t Target Coupling/Disambiguation...\n');
+    assignments = lapjv(S,eps); % NOTE This can be changed to accelerate the algorithm
+    % NOTE METHOD TWO OF INTER-CAMERA ASSIGNMENT
+    kill;
 
-    % TODO correct homographies and ALL detections using these homographies
     %---------------------------------------------------------------------------
+    % NOTE homography Correction can be done separately, independently of how the target coupling is solved
+    % TODO correct homographies and ALL detections using these homographies
 
     %---------------------------------------------------------------------------
     % TODO update motion models using old targets and predicted targets

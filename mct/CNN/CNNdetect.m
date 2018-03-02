@@ -32,7 +32,7 @@ function allDetections = CNNdetect(cameraListImages,sample_size)
             end
             allDetections{id} = cell(sample_size,1);
             for i = 1:sample_size
-                disp(['Camera' cameras{id} ' Frame ' sprintf('%d',i) '.Percentage done: ' sprintf('%f',i/sample_size)]);
+                disp(['Camera ' cameras{id} ' Frame ' sprintf('%d',i) '.Percentage done: ' sprintf('%f',i/sample_size)]);
                 img = imread(cameraListImages{id}{i});
                 % detect possible pedestrians with LDCF1
                 bbs = acfDetect(img,detector);

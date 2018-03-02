@@ -15,7 +15,7 @@ ground_plane_regions = computeGroundPlaneRegions(inplanes, homographies, length(
 %%=========================================================
 fprintf('Starting tracking loop:\n');
 num_frames = 10; % Number of frames
-start = 0;
+start = 1550;
 start_frames = [start start + offset_frames]; % Frames to start collecting images
 k = g_candidates ^ 2; % Candidates per target
 tau = 3;
@@ -47,5 +47,24 @@ for f = 1:(num_frames - 1)
     N = size(targs,1);
     cands = cell(N,1); cands_homo = cands; % Candidates from both cameras for each target, always empty each frame
     cands_percam = cell(2,1); cands_homo_percam = cands_percam;
-
+    %---------------------------------------------------------------------------
+    % TODO Sample around the targets. We then use these candidates on the next frame
+    fprintf('\t Sampling candidates...\n');
+    for t = 1:size(targs,1)
+        t_rect = targs(t,4:7);
+        cands{t} = zeros(k,4);
+        counter = 1;
+        for gridx=-2:2
+          for gridy=-2:2
+            cx = t_rect(1) + gridx * t_rect(3)/10; % startx + gridx * xstep
+            cy = t_rect(2) + gridy * t_rect(4)/10; % starty + gridy * ystep
+            % TODO Compute homography transformation of candidates and store them in cand_homo
+            cands_homo{t}(counter,:) = transpose(H_alt(homographies{targs(t,1)}, [cx+t_rect(3)/2 cy+t_rect(4)]));
+            cands{t}(counter,:) = [cx cy t_rect(3) t_rect(4)];
+            counter = counter + 1;
+          end
+        end
+        cands_percam{targs(t,1)}{end+1} = cands{t}; cands_homo_percam{targs(t,1)}{end+1} = cands_homo{t};
+    end
+    kill;
 end
