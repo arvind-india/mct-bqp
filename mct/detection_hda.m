@@ -77,6 +77,9 @@ for i=1:length(cameras)
             t = H(homographies{i}, [detections{i}{j}(d,4)+detections{i}{j}(d,6)/2; detections{i}{j}(d,5)+detections{i}{j}(d,7)]); % Get cam plane coordinates
             gnd_detections{i}{j}(d,1:7) = detections{i}{j}(d,1:7);
 
+            % NOTE this converts from detection indexes to per cam post filtering indexes. HDA already had some labels though...
+            gnd_detections{i}{j}(d,3) = d;
+
             gnd_detections{i}{j}(d,8:9) = t; % x and y are now in the ground plane
             if i == 1
                 plot(t(1),t(2),'r+');

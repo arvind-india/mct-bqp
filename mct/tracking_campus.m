@@ -15,7 +15,7 @@ ground_plane_regions = computeGroundPlaneRegions(inplanes, homographies, length(
 %%=========================================================
 fprintf('Starting tracking loop:\n');
 num_frames = 10; % Number of frames
-start = 108;
+start = 0;
 start_frames = [start + offset_frames start]; % Frames to start collecting images
 k = g_candidates ^ 2; % Candidates per target
 tau = 3;
@@ -44,6 +44,8 @@ for f = 1:(num_frames - 1)
     end
     targs_percam = (accumarray(targs(:,1),(1:size(targs,1)).',[],@(x){targs(x,:)},{}));
     N = size(targs,1);
+    n1 = size(targs_percam{1},1);
+    n2 = size(targs_percam{2},1);
     cands = cell(N,1); cands_homo = cands; % Candidates from both cameras for each target, always empty each frame
     cands_percam = cell(2,1); cands_homo_percam = cands_percam;
     %---------------------------------------------------------------------------
@@ -68,6 +70,15 @@ for f = 1:(num_frames - 1)
     %---------------------------------------------------------------------------
     % TODO check for potential new targets to add from the detections
     fprintf('\t Checking for potential new targets...\n');
+
+    % Check if detections are available. If there are more detections than currently there are targets consider this
+    if f ~= 1
+        if size(gnd_detections{id}{start_frames(id) + f},1) > size(targs_percam{id},1)
+            fprintf('\t \t More detections than targets! \n');
+        end
+    end
+
+
     %---------------------------------------------------------------------------
     % TODO store the ones that are ambiguous for homography correction in targs_in_overlap (i.e gating part 1)
     fprintf('\t Checking for targets in the overlapping regions...\n');
@@ -107,6 +118,7 @@ for f = 1:(num_frames - 1)
     fprintf('\t Computing motion cues...\n');
     m = cell(length(cameras),1);
     for i = 1:length(cameras)
+        n = size(targs_percam{i},1);
         c_m = motion(n,k,motion_models,cands_homo_percam{i},fps);
         m{i} = c_m;
         %plotMotion();
@@ -133,7 +145,7 @@ for f = 1:(num_frames - 1)
     Dinvsq(~isfinite(Dinvsq)) = 0; %Remove infinites from Dsinvsq, Ds.^(-1/2) is only in the diagonal
     G = eye(N*k) - Dinvsq*T*Dinvsq; %Normalized Laplacian matrix so G is convex
     %plotGrouping();
-
+    
     %---------------------------------------------------------------------------
     % TODO join all cues and solve FW
     fprintf('\t Solving Frank-Wolfe optimization...\n');
@@ -143,59 +155,83 @@ for f = 1:(num_frames - 1)
     % Solve the problem using Frank Wolfe
     [minx,minf,x_t,f_t,t1_end] = FW_crowd_wrapper(H_,F,Aeq,Beq,labels); % minx is the value we want
 
-    optimization_results = reshape(minx,k,[]);
-    fprintf('\t Found optimal candidates for each target.\n');
-    figure; hold on;
+    optimization_results = reshape(minx,k,[]); optimization_results_percam = cell(2,1);
+    % TODO fix this, should work for multiple cameras
+    optimization_results_percam{1} = optimization_results(:,1:n1);
+    optimization_results_percam{2} = optimization_results(:,n1:end);
+
+    fprintf('\t Found optimal candidates for each target. If debug option, will now show selected candidates.\n');
+
     % NOTE Show next frame
     % NOTE Show previous target location
     % NOTE Show all sampled candidates
     % NOTE Show best candidate
-    test_cam = 2;
-    title(['t+1 Candidates (BB) in camera ' cameras{test_cam}]);
-    imshow(cameraListImages{test_cam}{start_frames(test_cam)+f});
-    %drawCandidateBBs(cell2mat(transpose(cands_percam{test_cam})), 'Green', 'hda', k);
-    drawBBs(targs_percam{test_cam}(:,4:7), 'Yellow', 'hda');
-    for i=1:N
-        for j=1:k
-            if optimization_results(j,i) == 1
-                % DEBUG
-                if i > 3
-                    rectangle('Position',cands{i}(j,:),'EdgeColor', 'Red', 'LineWidth', 1);
+    for test_cam = 1:length(cameras)
+        figure; hold on;
+        title(['t+1 Candidates (BB) in camera ' cameras{test_cam}]);
+        imshow(cameraListImages{test_cam}{start_frames(test_cam)+f});
+        %drawCandidateBBs(cell2mat(transpose(cands_percam{test_cam})), 'Green', 'hda', k);
+        drawBBs(targs_percam{test_cam}(:,4:7), 'Yellow', 'hda');
+        for i=1:size(targs_percam{test_cam})
+            for j=1:k
+                if optimization_results_percam{test_cam}(j,i) == 1
+                    % DEBUG
+                    rectangle('Position',cands_percam{test_cam}{i}(j,:),'EdgeColor', 'Red', 'LineWidth', 1);
                 end
             end
         end
     end
+    %#############################################################################################################################
+    fprintf('\t Performing inter-camera disambiguation in overlap region...\n');
+    if ~isempty(targs_in_overlap)
+        % NOTE METHOD ONE OF INTER-CAMERA ASSIGNMENT
+        % TODO Build Score matrix (how to generalize this to n cameras? NP-hard assignment problem?)
+        n_ov1 = size(targs_in_overlap{1},1);
+        n_ov2 = size(targs_in_overlap{2},1);
+        [S, A, P, V] = createScoreMatrix(n_ov1,n_ov2,targs_in_overlap,images,d1_metric,d256_metric);
+        % TODO Gating (i.e gating part2)
+        for a = 1:n_ov1
+            for b = 1:n_ov2
+                if P(a,b) > gating_distance
+                    S(a,b) = 1000000;
+                end
+            end
+        end
+
+        % TODO Target Coupling (disambiguate between targets that are in the overlapping region)
+        assignments = lapjv(S,eps); % NOTE eps can be changed to accelerate the algorithm
+        % NOTE METHOD TWO OF INTER-CAMERA ASSIGNMENT
+
+        %---------------------------------------------------------------------------
+        % NOTE homography Correction can be done separately, independently of how the target coupling is solved
+        % TODO correct homographies and ALL detections using these homographies
+    end
+    %#############################################################################################################################
     %---------------------------------------------------------------------------
-    fprintf('\t Performing inter-camera disambiguation...\n');
-    % NOTE METHOD ONE OF INTER-CAMERA ASSIGNMENT
-    % TODO Build Score matrix (how to generalize this to n cameras? NP-hard assignment problem?)
-    n_ov1 = size(targs_in_overlap{1},1);
-    n_ov2 = size(targs_in_overlap{2},1);
-    [S, A, P, V] = createScoreMatrix(n_ov1,n_ov2,targs_in_overlap,images,d1_metric,d256_metric);
-    % TODO Gating (i.e gating part2)
-    for a = 1:n_ov1
-        for b = 1:n_ov2
-            if P(a,b) > gating_distance
-                S(a,b) = 1000000;
+    % TODO update motion models using old targets and predicted targets
+    for i=1:N
+        for j=1:k
+            if optimization_results(j,i) == 1
+                % Update Position
+                motion_models{i}(1:2) = cands_homo{i}(j,:);
+                % Update velocity
+                dt = 1.0/fps;
+                motion_models{i}(3:4) = (cands_homo{i}(j,:) - targs(i,8:9))/dt;
             end
         end
     end
 
-    % TODO Target Coupling (disambiguate between targets that are in the overlapping region)
-    assignments = lapjv(S,eps); % NOTE This can be changed to accelerate the algorithm
-    % NOTE METHOD TWO OF INTER-CAMERA ASSIGNMENT
-    kill;
+    %---------------------------------------------------------------------------
+    % TODO Store trajectories
 
     %---------------------------------------------------------------------------
-    % NOTE homography Correction can be done separately, independently of how the target coupling is solved
-    % TODO correct homographies and ALL detections using these homographies
-
-    %---------------------------------------------------------------------------
-    % TODO update motion models using old targets and predicted targets
-    %---------------------------------------------------------------------------
-
-    % TODO clear targets, use the predicted ones as new targets
-    %---------------------------------------------------------------------------
-
-    kill;
+    % TODO "clear" targets, use the predicted ones as new targets
+    for i=1:N
+        for j=1:k
+            if optimization_results(j,i) == 1
+                targs(i,4:7) = cands{i}(j,:);
+                targs(i,8:9) = cands_homo{i}(j,:);
+            end
+        end
+    end
 end
