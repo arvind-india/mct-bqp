@@ -1,0 +1,82 @@
+camera 0
+--------
+original image size: 720 576
+
+internal parameters:
+986.687301     0.000000  356.740519
+  0.000000  1210.198357  277.271078
+  0.000000     0.000000    1.000000
+
+radial distortion coefficients:
+-0.302910 0.565347 
+
+tangential distortion coefficients:
+0.0 0.0 0.0
+
+external parameters: P = [R -R*T]
+-0.763364 -0.645842 -0.012749  0.559526
+-0.103538  0.141812 -0.984464 -0.054034
+ 0.637617 -0.750184 -0.175124  0.893532
+
+
+camera 1
+--------
+original image size: 720 576
+
+internal parameters:
+944.800487     0.000000  356.740519
+  0.000000  1181.990986  277.271078
+  0.000000     0.000000    1.000000
+
+radial distortion coefficients:
+-0.286372 0.382209 
+
+tangential distortion coefficients:
+0.0 0.0 0.0
+
+external parameters: P = [R -R*T]
+-0.774720  0.631498 -0.031924  0.005933
+ 0.138701  0.120465 -0.982980 -0.130554
+-0.616904 -0.765963 -0.180916  1.349101
+
+
+camera 2
+--------
+original image size: 720 576
+
+internal parameters
+1060.366795     0.000000  353.740332
+   0.000000  1258.626883  298.008256
+   0.000000     0.000000    1.000000
+
+radial distortion coefficients:
+0.495105 -2.685911
+
+tangential distortion coefficients:
+0.0 0.0 0.0
+
+external parameters: P = [R -R*T]
+ 0.730536  0.682767 -0.012115 -0.512288
+ 0.125756 -0.151950 -0.980355 -0.027009
+-0.671195  0.714661 -0.196867  0.748682
+
+
+camera 3
+--------
+original image size: 720 576
+
+internal parameters
+835.828405     0.000000  351.133376
+0.000000    1011.558484  301.631713
+0.000000       0.000000    1.000000
+
+radial distortion coefficients:
+-0.262548 0.281266 
+
+tangential distortion coefficients:
+0.0 0.0 0.0
+
+external parameters: P = [R -R*T]
+ 0.702487 -0.711642  0.008770 0.014587
+-0.145861 -0.156024 -0.976924 0.059794
+ 0.696589  0.684997 -0.213406 0.244734

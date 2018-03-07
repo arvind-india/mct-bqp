@@ -20,8 +20,11 @@ g_candidates = 5; % basis for the number of candidates
 global lambda
 lambda = 0.1; % variable for the appearance cues
 
-global zeta
-zeta = 1.0; % weight of the motion constraint
+global Alpha
+Alpha = 1.0;
+
+global Zeta
+Zeta = 1.0; % weight of the motion constraint
 
 global score_threshold
 score_threshold = 0.5;

@@ -39,13 +39,15 @@ if strcmp(detect_mode,'GT') == 1
 
 elseif strcmp(detect_mode,'CNN') == 1
     % TODO Get DeepPed detections
-
-
-
-elseif strcmp(detect_mode,'ACF') == 1
-    % TODO Get ACF detections
-
+    sample_size = 7; % -1 means all
+    detections = CNNdetect(cameraListImages, sample_size, cameras, cpu_results, gpu_results, ...
+    LDCF_cascThr, LDCF_cascCal, LDCF_rescale, use_GPU, score_threshold, NMS_maxoverlap);
+    for i=1:length(cameras)
+        detections{i} = detections{i}(~cellfun('isempty',detections{i}));
+    end
+    kill;
 end
+
 colors = {'Red','Blue','Black'};
 num_ped_per_frame = cell(2,1);
 % TODO Somehow show the number of valid detections on each frame for each camera overlayed as an actual line plot

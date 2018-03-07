@@ -24,5 +24,5 @@ function [H,F,Aeq,Beq,labels] = FW_preamble(N,k,a,m,G)
 
     % Model the problem
     H = sparse(G);
-    F = a + zeta*m;
+    F = Alpha*a + Zeta*m;
 end

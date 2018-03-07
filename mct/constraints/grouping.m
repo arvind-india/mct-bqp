@@ -1,6 +1,6 @@
 function T = grouping(N,k,groups,targs,targs_percam,cands_homo)
     T = zeros(N*k,N*k);
-    twosigma_sq = 2*10^2;
+    twosigma_sq = 2*2^2;
     for i1=1:N
         for i2=1:N
             for j1=1:k

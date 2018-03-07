@@ -1,4 +1,4 @@
-# Multiple-camera tracking and pedestrian detection with BQP 
+# Multiple-camera tracking and pedestrian detection with BQP
 
 Working on Ubuntu 16.04, CUDA 8.0 and any GPU with >2GB of memory.
 
@@ -27,7 +27,7 @@ Run `campus2_script.m` for tracking in the *Campus II* dataset (please run it fr
 
 Run `hda_elevator_script.m` for tracking in a specific *HDA+* scenario (elevator lobby). You can run it from `/mct-bqp`.
 
-*NOTE*: All data provided in the `hda_data` and `campus2_data` folders are not the actual datasets for privacy reasons but just txt results of the detections, which are useful to test the trackers. For the actual datasets see below.
+*NOTE*: All data provided in the `hda_data` and `campus2_data` folders are not the actual datasets for privacy reasons but just .txt results of the detections, which are useful to test the trackers. For the actual datasets see below. Also note that there is a bug in MATLAB for the recent versions of Ubuntu if you're trying to convert avi/mp4 files to image sequences. To use our included script `video2frames.m` you have to launch MATLAB as `LD_PRELOAD=/usr/lib64/libstdc++.so.6 /usr/local/bin/matlab -desktop` so it knows to use the library from your files ystem and not the packaged one.
 
 ### Tweaking/Finetuning
 

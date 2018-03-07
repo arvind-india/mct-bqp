@@ -1,3 +1,5 @@
+addpath('/home/pedro/rcnn');
+set(0,'DefaultFigureVisible','off');
 setDetectionParams_campus2;
 setTrackerParams;
 
@@ -145,7 +147,7 @@ for f = 1:(num_frames - 1)
     Dinvsq(~isfinite(Dinvsq)) = 0; %Remove infinites from Dsinvsq, Ds.^(-1/2) is only in the diagonal
     G = eye(N*k) - Dinvsq*T*Dinvsq; %Normalized Laplacian matrix so G is convex
     %plotGrouping();
-    
+
     %---------------------------------------------------------------------------
     % TODO join all cues and solve FW
     fprintf('\t Solving Frank-Wolfe optimization...\n');

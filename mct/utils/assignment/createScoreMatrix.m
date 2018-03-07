@@ -1,4 +1,4 @@
-function [S, A, P, V] = createScoreMatrix(n_ov1,n_ov2,targs_overlap,images,d1_metric,d256_metric)
+function [S, A, P, V] = createScoreMatrix(f,n_ov1,n_ov2,targs_overlap,images,d1_metric,d256_metric, motion_models_overlap)
     S = zeros(n_ov1,n_ov2); A = zeros(n_ov1,n_ov2);
     P = zeros(n_ov1,n_ov2); V = zeros(n_ov1,n_ov2);
 
@@ -6,14 +6,19 @@ function [S, A, P, V] = createScoreMatrix(n_ov1,n_ov2,targs_overlap,images,d1_me
         for b=1:n_ov2
 
             % TODO Euclidean Distance
-            p1 = targs_overlap{1}(n_ov1,8:9);
-            p2 = targs_overlap{2}(n_ov2,8:9);
+            p1 = targs_overlap{1}(a,8:9);
+            p2 = targs_overlap{2}(b,8:9);
             P(a,b) = pdist([p1;p2],d1_metric);
 
             % TODO Euclidean distance between motion cues
-            v1 = 0;
-            v2 = 0;
-            V(a,b) = sum(abs(v1 - v2));
+            if f == 1
+                v1 = 0;
+                v2 = 0;
+            else
+                v1 = motion_models_overlap{1}(a,4:5);
+                v2 = motion_models_overlap{2}(b,4:5);
+            end
+            V(a,b) = sum(abs(v1 - v2))/sum(abs(v1 + v2));
 
             % TODO Appearance
             bb_img1 = imcrop(images{1},targs_overlap{1}(a,4:7));
@@ -40,4 +45,8 @@ function [S, A, P, V] = createScoreMatrix(n_ov1,n_ov2,targs_overlap,images,d1_me
         end
     end
     %S = A + V + P;
-    S = (A/max(A(:))) .* (A/max(A(:))) .* (A/max(A(:)));
+    if f == 1
+        S = (A/max(A(:))) .* (P/max(P(:)));
+    else
+        S = (A/max(A(:))) .* (V/max(V(:))) .* (P/max(P(:)));
+    end

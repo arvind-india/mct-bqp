@@ -1,11 +1,11 @@
-function allDetections = CNNdetect(cameraListImages,sample_size)
+function allDetections = CNNdetect(cameraListImages,sample_size, cameras, cpu_results, gpu_results,...
+     LDCF_cascThr, LDCF_cascCal, LDCF_rescale, use_GPU, score_threshold, NMS_maxoverlap)
     % Given a list of images and a sample size
     % Inputs
     %  allFG_time: Get all frames with their respective ground truth
 
     % Output
     %  allDetections: all detections from the CNN
-    setDetectionParams_campus2;
 
     %==========================================================
     %Just for now, working with this
@@ -15,11 +15,11 @@ function allDetections = CNNdetect(cameraListImages,sample_size)
 
         directory_not_exists = 0;
         if use_GPU(id) == 1
-            if ~exist([gpu_results cameras{id} '.txt'], 'file')
+            if ~exist([gpu_results num2str(cameras{id}) '.txt'], 'file')
                 directory_not_exists = 1;
             end
         else
-            if ~exist([cpu_results cameras{id} '.txt'], 'file')
+            if ~exist([cpu_results num2str(cameras{id}) '.txt'], 'file')
                 directory_not_exists = 1;
             end
         end
@@ -32,7 +32,7 @@ function allDetections = CNNdetect(cameraListImages,sample_size)
             end
             allDetections{id} = cell(sample_size,1);
             for i = 1:sample_size
-                disp(['Camera ' cameras{id} ' Frame ' sprintf('%d',i) '.Percentage done: ' sprintf('%f',i/sample_size)]);
+                disp(['Camera ' num2str(cameras{id}) ' Frame ' sprintf('%d',i) '.Percentage done: ' sprintf('%f',i/sample_size)]);
                 img = imread(cameraListImages{id}{i});
                 % detect possible pedestrians with LDCF1
                 bbs = acfDetect(img,detector);
@@ -61,12 +61,12 @@ function allDetections = CNNdetect(cameraListImages,sample_size)
                 allDetections{id}{i} = dets;
 
             end
-            disp(['Camera ' cameras{id} ' is done']);
+            disp(['Camera ' num2str(cameras{id}) ' is done']);
             %Transform detections to a file so we can load faster in the future
             if use_GPU(id) == 1
-        	       fileID = fopen([gpu_results cameras{id} '.txt'],'w');
+        	       fileID = fopen([gpu_results num2str(cameras{id}) '.txt'],'w');
             else
-        	       fileID = fopen([cpu_results cameras{id} '.txt'],'w');
+        	       fileID = fopen([cpu_results num2str(cameras{id}) '.txt'],'w');
             end
         	formatSpec = '%d,%d,%4.5f,%4.5f,%4.5f,%4.5f,%1.5f\n';
         	for i=1:sample_size
@@ -78,9 +78,9 @@ function allDetections = CNNdetect(cameraListImages,sample_size)
         else
             % load the file
             if use_GPU(id) == 1
-        	       filename = [gpu_results cameras{id} '.txt'];
+        	       filename = [gpu_results num2str(cameras{id}) '.txt'];
             else
-        	       filename = [cpu_results cameras{id} '.txt'];
+        	       filename = [cpu_results num2str(cameras{id}) '.txt'];
             end
             fileID = fopen(filename);
         	file = textscan(fileID,'%d%d%f%f%f%f%f','Delimiter',',');

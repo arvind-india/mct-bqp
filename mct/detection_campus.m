@@ -9,8 +9,9 @@ for i=1:length(cameras)
     cameraListImages{i} = loadImages(cameras, image_directories{i}, 0, i, 'campus2');
     inplanes{i} = dlmread(strcat(regions_folder, cameras{i}, '.txt'));
 end
-sample_size = 100; % -1 means all
-detections = CNNdetect(cameraListImages, sample_size);
+sample_size = 7; % -1 means all
+detections = CNNdetect(cameraListImages, sample_size, cameras, cpu_results, gpu_results, ...
+ LDCF_cascThr, LDCF_cascCal, LDCF_rescale, use_GPU, score_threshold, NMS_maxoverlap);
 
 % Parse for systematic error detections and remove all empty cells
 detections = filterCNN(detections, inplanes);
@@ -18,7 +19,7 @@ for i=1:length(cameras)
     detections{i} = detections{i}(~cellfun('isempty',detections{i}));
 end
 
-start_frame = 1;
+start_frame = 65;
 for i=1:length(cameras)
     figure;
     for s = start_frame:4:(sample_size+start_frame)
