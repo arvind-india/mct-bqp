@@ -13,23 +13,24 @@ end
 [homographies, invhomographies] = loadHomographies(homography_directory,'hda', cameras);
 ground_plane_regions = computeGroundPlaneRegions(inplanes, homographies, length(cameras), 'hda');
 [overlap, ~, ~] = computeOverlap(ground_plane_regions);
-
+ground_plane_regions_adjusted = cell(2,1);
 %%=========================================================
 fprintf('Starting tracking loop:\n');
 valid_matchings = cell(2,1);
-groups = {}; merged_positions = {}; adjusted_positions = {}; tracklets = {};
+groups = {}; adjusted_positions = cell(2,1); tracklets = {};
 num_frames = 7; % Number of frames
 start = 6811;
 start_frames = [start + offset_frames start]; % Frames to start collecting images
 k = g_candidates ^ 2; % Candidates per target
 tau = 1; psi = 8; xi = 1;
 N = 0; % Number of targets in all cameras
-penalize_val = 10;
-reward_val = -10;
+penalize_val = 1;
+reward_val = -1;
 score_threshold = 0.4;
 comfort_distance = 1.0; % Anyone closer than this meters is in talking range?
-initial_speed_x = -50;
+initial_speed_x = 50;
 initial_speed_y = 0;
+a_sigma = sqrt(0.6); m_sigma = [15 0; 0 15]; G_sigma =  2 * (2 ^ 2);
 for f = 1:(num_frames - 1)
     if f == 5
         break;
@@ -126,12 +127,12 @@ for f = 1:(num_frames - 1)
     a = cell(length(cameras),1);
     for i = 1:length(cameras)
         n = size(targs_percam{i},1);
-        [c_a, w, Z, y] = appearance(k,n,targs_percam{i},cands_percam{i},images{i},next_images{i},'naive',lambda);
+        [c_a, w, Z, y] = appearance(k,n,targs_percam{i},cands_percam{i},images{i},next_images{i},'naive',lambda,a_sigma);
         a{i} = c_a;
         plotAppeance(c_a,i,n,k,cameraListImages,f,targs_percam,cameras,cands_percam, start_frames,cands_homo_percam);
     end
     a = cell2mat(a);
-
+    a = a./max(abs(a(:))); % TODO This normalization should help?
     %---------------------------------------------------------------------------
     % TODO create motion models
     if f == 1
@@ -147,11 +148,12 @@ for f = 1:(num_frames - 1)
     m = cell(length(cameras),1);
     for i = 1:length(cameras)
         n = size(targs_percam{i},1);
-        c_m = motion(n,k,motion_models,cands_homo_percam{i},fps);
+        c_m = motion(n,k,motion_models,cands_homo_percam{i},fps,m_sigma);
         m{i} = c_m;
         plotMotion(i, c_m, k, n, floor_image, cands_homo_percam);
     end
     m = cell2mat(m);
+    m = m./max(abs(m(:))); % TODO This normalization should help?
     %--------------------------------
     % TODO create groups
     fprintf('\t Creating groups...\n');
@@ -167,7 +169,8 @@ for f = 1:(num_frames - 1)
     %--------------------------------
     % TODO grouping
     fprintf('\t Computing grouping cues...\n');
-    T = grouping(N,k,groups,targs,targs_percam,cands_homo);
+    T = grouping(N,k,groups,targs,targs_percam,cands_homo,G_sigma);
+    T = T./max(abs(T(:))); % TODO This normalization should help?
     Dinvsq = diag(sum(T,2)).^(-1/2); %row sum
     Dinvsq(~isfinite(Dinvsq)) = 0; %Remove infinites from Dsinvsq, Ds.^(-1/2) is only in the diagonal
     G = eye(N*k) - Dinvsq*T*Dinvsq; %Normalized Laplacian matrix so G is convex
@@ -228,46 +231,37 @@ for f = 1:(num_frames - 1)
         [S, A, P, V] = createScoreMatrix(f,n_ov1,n_ov2,targs_in_overlap,images,d1_metric,d256_metric, motion_models_overlap);
 
         % TODO Gating (i.e gating part2)
-        for a = 1:n_ov1
-            for b = 1:n_ov2
-                if P(a,b) > gating_distance
-                    S(a,b) = Inf;
+        for a1 = 1:n_ov1
+            for b1 = 1:n_ov2
+                if P(a1,b1) > gating_distance
+                    S(a1,b1) = Inf;
                 end
             end
         end
         % TODO Target Coupling (disambiguate between targets that are in the overlapping region)
         assignments = lapjv(S,eps); % NOTE eps can be changed to accelerate the algorithm
-        matchings = cell(2,1); matchings{1} = zeros(size(S,1),9);matchings{2} = zeros(size(S,1),9);
         for i=1:size(S,2)
             if n_ov2 >= n_ov1
                 fprintf('\t\tBest assignment for id %d in cam %d === id %d in cam %d \n', i, targs_in_overlap{1}(i,1),...
                 assignments(i), targs_in_overlap{2}(assignments(i),1));
-                matchings{1}(i,:) = targs_in_overlap{1}(i,:); matchings{2}(i,:) = targs_in_overlap{2}(assignments(i),:);
                 score = S(i,assignments(i));
             else
                 fprintf('\t\tBest assignment for id %d in cam %d === id %d in cam %d \n', assignments(i), targs_in_overlap{1}(assignments(i),1),...
                 i, targs_in_overlap{2}(i,1));
-                matchings{1}(i,:) = targs_in_overlap{1}(assignments(i),:); matchings{2}(i,:) = targs_in_overlap{2}(i,:);
                 score = S(assignments(i),i);
             end
 
             fprintf('\t\tScore: %f\n', score);
             % TODO If its a good score, then store merge
             if score < score_threshold
+                % TODO Make this work for more than 2 cameras
                 if n_ov2 >= n_ov1
-                    % TODO Average target positions
-                    new_pos = (targs_in_overlap{1}(i,8:9) + targs_in_overlap{2}(assignments(i),8:9))/2;
-                    % TODO Average their best candidate positions
-                    % NOTE, not necessary if on the next frame those will become the new targets
                     valid_matchings{1}{end+1} = targs_in_overlap{1}(i,:);
                     valid_matchings{2}{end+1} = targs_in_overlap{2}(assignments(i),:);
                 else
-                    new_pos = (targs_in_overlap{1}(assignments(i),8:9) + targs_in_overlap{2}(i,8:9))/2;
                     valid_matchings{1}{end+1} = targs_in_overlap{1}(assignments(i),:);
                     valid_matchings{2}{end+1} = targs_in_overlap{2}(i,:);
                 end
-                % TODO Store disambiguation results
-                merged_positions{end+1} = [f new_pos];
             end
         end
 
@@ -284,7 +278,6 @@ for f = 1:(num_frames - 1)
         else
             % TODO We need ghost targets
         end
-
 
         %---------------------------------------------------------------------------
         % NOTE homography Correction can be done separately, independently of how the target coupling is solved
@@ -303,6 +296,12 @@ for f = 1:(num_frames - 1)
             [H1, H2, cam1_dets_gnd, cam2_dets_gnd, cam1_region_gnd, cam2_region_gnd] = homography_correction(v_matchings, inplanes, ...
             ground_plane_regions, homog_solver, best_N, rho_r, rho_d);
             homographies{1} = H1; homographies{2} = H2;
+
+            ground_plane_regions_adjusted{1} = cam1_region_gnd;
+            ground_plane_regions_adjusted{2} = cam2_region_gnd;
+            [overlap_adjusted, ~, ~] = computeOverlap(ground_plane_regions_adjusted);
+            adjusted_positions{1}{end+1} = cam1_dets_gnd;
+            adjusted_positions{2}{end+1} = cam2_dets_gnd;
         end
         set(0,'DefaultFigureVisible','off');
     end
@@ -339,6 +338,7 @@ end
 set(0,'DefaultFigureVisible','on');
 % TODO Plot final tracks for debug mostly
 openfig(floor_image); hold on;
+
 for s = 1:length(tracklets)
     if tracklets{s}(1,1) == 1
         plot(tracklets{s}(:,8),tracklets{s}(:,9),'r-s');
@@ -346,7 +346,23 @@ for s = 1:length(tracklets)
         plot(tracklets{s}(:,8),tracklets{s}(:,9),'b-s');
     end
 end
+for i = 1:length(cameras)
+    adjusted_positions{i} = cell2mat(adjusted_positions{i});
+    if i == 1
+        scatter(adjusted_positions{i}(:,1),adjusted_positions{i}(:,2),'MarkerFaceColor',rgb('Pink'),'MarkerEdgeColor',rgb('Pink'));
+    else
+        scatter(adjusted_positions{i}(:,1),adjusted_positions{i}(:,2),'MarkerFaceColor',rgb('Green'),'MarkerEdgeColor',rgb('Green'));
+    end
+end
 % TODO Plot ground truths
+colors = {'Orange','Purple','Grey'};
+colors_adjusted = {'Red','Blue','Black'};
+for i=1:length(cameras)
+    drawPoly(ground_plane_regions{i},colors{i},0.5,false); % Draw regions
+    drawPoly(ground_plane_regions_adjusted{i},colors_adjusted{i},0.5,false);
+end
+drawPoly(overlap,colors{3},1.0,false);
+drawPoly(overlap_adjusted, colors_adjusted{3},1.0,false);
 for f = 1:(num_frames - 1)
     if f == 5
         break;
@@ -359,5 +375,4 @@ for f = 1:(num_frames - 1)
     for i = 1:size(truth2,1)
         scatter(truth2(:,8),truth2(:,9),'MarkerFaceColor',rgb('Purple'),'MarkerEdgeColor',rgb('Purple'));
     end
-
 end

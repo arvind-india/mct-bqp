@@ -90,20 +90,20 @@ function [H1, H2, cam1_dets_gnd, cam2_dets_gnd, cam1_region_gnd, cam2_region_gnd
     drawPoly(cam2_region_gnd,'Purple',0.5,false); % Draw region
     scatter(cam1_dets_gnd_original(:,1),cam1_dets_gnd_original(:,2),'MarkerFaceColor',rgb('Orange'),'MarkerEdgeColor',rgb('Orange'));
     scatter(cam2_dets_gnd_original(:,1),cam2_dets_gnd_original(:,2),'MarkerFaceColor',rgb('Purple'),'MarkerEdgeColor',rgb('Purple'));
-    xlabel('x') % x-axis label
-    ylabel('y') % y-axis label
+    xlabel('x(m)') % x-axis label
+    ylabel('y(m)') % y-axis label
 
     subplot(2,2,2);
     plot(1:N,distances);
     title('Distance between adjusted matchings.')
     xlabel('N') % x-axis label
-    ylabel('distance') % y-axis label
+    ylabel('distance(m)') % y-axis label
 
     subplot(2,2,3);
     plot(1:N,region_shifts,'r');
     title('Avg distance shifts of camera regions.')
     xlabel('N') % x-axis label
-    ylabel('shift') % y-axis label
+    ylabel('shift(m)') % y-axis label
 
     subplot(2,2,4);
     plot(1:(N-1),dd,'g');

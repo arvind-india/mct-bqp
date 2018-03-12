@@ -1,6 +1,5 @@
-function T = grouping(N,k,groups,targs,targs_percam,cands_homo)
+function T = grouping(N,k,groups,targs,targs_percam,cands_homo, G_sigma)
     T = zeros(N*k,N*k);
-    twosigma_sq = 2*2^2;
     for i1=1:N
         for i2=1:N
             for j1=1:k
@@ -26,7 +25,7 @@ function T = grouping(N,k,groups,targs,targs_percam,cands_homo)
                             else
                                 e12 = 0;
                             end
-                            T((i1-1)*k + j1,(i2-1)*k + j2) = exp((-dist + e12)/twosigma_sq);
+                            T((i1-1)*k + j1,(i2-1)*k + j2) = exp((-dist + e12)/G_sigma);
                         end
                     % TODO if the targets are NOT from the same camera (do we allow groups from different cameras?)
                     else

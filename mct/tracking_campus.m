@@ -191,10 +191,10 @@ for f = 1:(num_frames - 1)
         n_ov2 = size(targs_in_overlap{2},1);
         [S, A, P, V] = createScoreMatrix(n_ov1,n_ov2,targs_in_overlap,images,d1_metric,d256_metric);
         % TODO Gating (i.e gating part2)
-        for a = 1:n_ov1
-            for b = 1:n_ov2
-                if P(a,b) > gating_distance
-                    S(a,b) = 1000000;
+        for a1 = 1:n_ov1
+            for b1 = 1:n_ov2
+                if P(a1,b1) > gating_distance
+                    S(a1,b1) = Inf;
                 end
             end
         end

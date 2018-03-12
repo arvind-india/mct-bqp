@@ -1,4 +1,4 @@
-function [c_a, w, Z, y] = appearance(k,n,targs,cands,image,next_image,type,lambda)
+function [c_a, w, Z, y] = appearance(k,n,targs,cands,image,next_image,type,lambda,a_sigma)
 
   feature_vector_size = 3 * 256; % 3 * Histogram size = Feature vector
   I = eye(feature_vector_size, feature_vector_size);
@@ -11,9 +11,8 @@ function [c_a, w, Z, y] = appearance(k,n,targs,cands,image,next_image,type,lambd
 
     % TODO Create labels
     y = zeros(T,1);
-    % TODO Create a gaussian distribution in that grid. We assume correlations are null.
-    sigma = sqrt(0.6);
-    cov_matrix = [sigma^2 0.0; 0.0 sigma^2];
+    % TODO Create a gaussian distribution in that grid. We assume correlations are null
+    cov_matrix = [a_sigma^2 0.0; 0.0 a_sigma^2];
     gaussian = gauss2d([sqrt(T) sqrt(T)], cov_matrix, round([sqrt(T)/2 sqrt(T)/2]));
     % Get the target location/bb and slide it around in the current frame t
     startx = targs(i,4); starty = targs(i,5);
