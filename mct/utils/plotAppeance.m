@@ -1,4 +1,4 @@
-function plotAppeance(c_a,i,n,k,cameraListImages,f,targs_percam,cameras,cands_percam,start_frames)
+function plotAppeance(c_a,i,n,k,cameraListImages,f,targs_percam,cameras,cands_percam,start_frames,cands_homo_percam)
     % DEBUG
     figure; hold on;
     subplot(2,2,1), imshow(cameraListImages{i}{start_frames(i)+f});
@@ -22,4 +22,15 @@ function plotAppeance(c_a,i,n,k,cameraListImages,f,targs_percam,cameras,cands_pe
             plot(cands_percam{i}{t}(c,1)+cands_percam{i}{t}(c,3)/2,cands_percam{i}{t}(c,2)+cands_percam{i}{t}(c,4) - 10,'g*');
         end
     end
+    chunks = reshape(c_a,k,n);
+    figure; hold on;
+    colormap(hot);
+    title(['Displaying values of each ground plane candidate (Not representative of the actual samples) @ ' num2str(cameras{i})]);
+    for t = 1:size(cands_homo_percam{i},2)
+        for j = 1:k
+            sz = 300;
+            scatter(cands_homo_percam{i}{t}(j,1), cands_homo_percam{i}{t}(j,2),sz,chunks(j,t),'square','filled');
+        end
+    end
+    colorbar
 end

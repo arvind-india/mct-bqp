@@ -99,7 +99,6 @@ for f = 1:(num_frames - 1)
     a = cell(length(cameras),1);
     for i = 1:length(cameras)
         n = size(targs_percam{i},1);
-
         [c_a, w, Z, y] = appearance(k,n,targs_percam{i},cands_percam{i},images{i},next_images{i},'naive',lambda);
         a{i} = c_a;
         %--------------------------------

@@ -18,7 +18,7 @@ function [c_a, w, Z, y] = appearance(k,n,targs,cands,image,next_image,type,lambd
     % Get the target location/bb and slide it around in the current frame t
     startx = targs(i,4); starty = targs(i,5);
     bb_width = targs(i,6); bb_height = targs(i,7);
-    xstep = bb_width/10; ystep = bb_height/10; % Can be arbitrary granularity
+    xstep = bb_width/20; ystep = bb_height/20; % Can be arbitrary granularity
     counter = 1;
     for gridx=-2:2
       for gridy=-2:2

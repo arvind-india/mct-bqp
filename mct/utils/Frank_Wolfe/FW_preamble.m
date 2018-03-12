@@ -1,4 +1,4 @@
-function [H,F,Aeq,Beq,labels] = FW_preamble(N,k,a,m,G)
+function [H,F,Aeq,Beq,labels] = FW_preamble(N,k,a,m,G,b)
     % Puts the optimization variables in a format that the FW optimization can handle
     % Inputs
     %  n: the homographies for each camera
@@ -24,5 +24,5 @@ function [H,F,Aeq,Beq,labels] = FW_preamble(N,k,a,m,G)
 
     % Model the problem
     H = sparse(G);
-    F = Alpha*a + Zeta*m;
+    F = Alpha*a + Zeta*m + b;
 end
