@@ -32,5 +32,5 @@ function plotAppeance(c_a,i,n,k,cameraListImages,f,targs_percam,cameras,cands_pe
             scatter(cands_homo_percam{i}{t}(j,1), cands_homo_percam{i}{t}(j,2),sz,chunks(j,t),'square','filled');
         end
     end
-    colorbar
+    colorbar;
 end

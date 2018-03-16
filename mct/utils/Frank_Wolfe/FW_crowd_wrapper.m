@@ -1,4 +1,4 @@
-function [minx,minf,x_t,f_t,t1_end] = FW_crowd_wrapper(A,b, Aeq, Beq, labels)
+function [minx,minf,x_t,f_t,t1_end] = FW_crowd_wrapper(A,b, Aeq, Beq, labels, FW_max_iterations, FW_duality_gap, FW_eps)
     setTrackerParams;
 
     N = size(A,1);

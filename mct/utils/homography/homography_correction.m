@@ -1,4 +1,4 @@
-function [H1, H2, cam1_dets_gnd, cam2_dets_gnd, cam1_region_gnd, cam2_region_gnd] = homography_correction(matchings, inplanes, ground_plane_regions, homog_solver, N, rho_r, rho_d)
+function [H1, H2, cam1_dets_gnd, cam2_dets_gnd, cam1_region_gnd, cam2_region_gnd] = homography_correction(matchings, inplanes, ground_plane_regions, homog_solver, N, rho_r, rho_d, debug)
     %-----------------------------PREAMBLE---------------------------------
     cam1_region_cam = inplanes{1};
     cam2_region_cam = inplanes{2};
@@ -13,8 +13,10 @@ function [H1, H2, cam1_dets_gnd, cam2_dets_gnd, cam1_region_gnd, cam2_region_gnd
     cam1_dets_gnd_original = cam1_dets_gnd;
     cam2_dets_gnd_original = cam2_dets_gnd;
     %-----------------------------ITERATIVE PROCESS---------------------------------
-    % DEBUG
-    figure; subplot(2,2,1); hold on; title('Iterations converging on the ground plane.')
+    if strcmp(debug,'debug')
+        % DEBUG
+        figure; subplot(2,2,1); hold on; title('Iterations converging on the ground plane.')
+    end
     n_c2 = cell(N+1,size(cam2_dets_gnd,2)); n_c1 = cell(N+1,size(cam1_dets_gnd,1));
     for i=1:size(cam2_dets_cam,1)
       n_c2{1,i} = cam2_dets_gnd_original(i,:);
@@ -51,11 +53,12 @@ function [H1, H2, cam1_dets_gnd, cam2_dets_gnd, cam1_region_gnd, cam2_region_gnd
           n_c1{reps+1,i} = cam1_dets_gnd(i,:);
         end
         cam1_region_gnd = reg2gnd(cam1_region_cam, H1);
-        %DEBUG
-        drawPoly(cam1_region_gnd,'Yellow',0.5,false); % Draw region
-        drawPoly(cam2_region_gnd,'Pink',0.5,false); % Draw region
-        scatter(cam1_dets_gnd(:,1),cam1_dets_gnd(:,2),'MarkerFaceColor',rgb('Yellow'),'MarkerEdgeColor',rgb('Yellow'));
-        scatter(cam2_dets_gnd(:,1),cam2_dets_gnd(:,2),'MarkerFaceColor',rgb('Pink'),'MarkerEdgeColor',rgb('Pink'));
+        if strcmp(debug,'debug') %DEBUG
+            drawPoly(cam1_region_gnd,'Yellow',0.5,false); % Draw region
+            drawPoly(cam2_region_gnd,'Pink',0.5,false); % Draw region
+            scatter(cam1_dets_gnd(:,1),cam1_dets_gnd(:,2),'MarkerFaceColor',rgb('Yellow'),'MarkerEdgeColor',rgb('Yellow'));
+            scatter(cam2_dets_gnd(:,1),cam2_dets_gnd(:,2),'MarkerFaceColor',rgb('Pink'),'MarkerEdgeColor',rgb('Pink'));
+        end
         for i = 1:size(cam1_dets_gnd,1)
             distances(reps) = distances(reps) + pdist([cam2_dets_gnd(i,:); cam1_dets_gnd(i,:)]);
         end
@@ -75,41 +78,42 @@ function [H1, H2, cam1_dets_gnd, cam2_dets_gnd, cam1_region_gnd, cam2_region_gnd
             dd(reps-1) = distances(reps-1) - distances(reps);
         end
     end
+    if strcmp(debug,'debug') %DEBUG
+        hold on;
+        for i = 1:size(cam1_dets_gnd,1)
+            n_s1 = n_c1(:,i);
+            n_s2 = n_c2(:,i);
+            ns1 = cell2mat(n_s1);
+            ns2 = cell2mat(n_s2);
+            plot(ns1(:,1),ns1(:,2),'k');
+            plot(ns2(:,1),ns2(:,2),'k');
+        end
 
-    hold on;
-    for i = 1:size(cam1_dets_gnd,1)
-        n_s1 = n_c1(:,i);
-        n_s2 = n_c2(:,i);
-        ns1 = cell2mat(n_s1);
-        ns2 = cell2mat(n_s2);
-        plot(ns1(:,1),ns1(:,2),'k');
-        plot(ns2(:,1),ns2(:,2),'k');
+        drawPoly(cam1_region_gnd,'Orange',0.5,false); % Draw region
+        drawPoly(cam2_region_gnd,'Purple',0.5,false); % Draw region
+        scatter(cam1_dets_gnd_original(:,1),cam1_dets_gnd_original(:,2),'MarkerFaceColor',rgb('Orange'),'MarkerEdgeColor',rgb('Orange'));
+        scatter(cam2_dets_gnd_original(:,1),cam2_dets_gnd_original(:,2),'MarkerFaceColor',rgb('Purple'),'MarkerEdgeColor',rgb('Purple'));
+        xlabel('x(m)') % x-axis label
+        ylabel('y(m)') % y-axis label
+
+        subplot(2,2,2);
+        plot(1:N,distances);
+        title('Distance between adjusted matchings.')
+        xlabel('N') % x-axis label
+        ylabel('distance(m)') % y-axis label
+
+        subplot(2,2,3);
+        plot(1:N,region_shifts,'r');
+        title('Avg distance shifts of camera regions.')
+        xlabel('N') % x-axis label
+        ylabel('shift(m)') % y-axis label
+
+        subplot(2,2,4);
+        plot(1:(N-1),dd,'g');
+        title('Derivative of adjustments.')
+        xlabel('N') % x-axis label
+        ylabel('d(distance)/dN') % y-axis label
     end
-
-    drawPoly(cam1_region_gnd,'Orange',0.5,false); % Draw region
-    drawPoly(cam2_region_gnd,'Purple',0.5,false); % Draw region
-    scatter(cam1_dets_gnd_original(:,1),cam1_dets_gnd_original(:,2),'MarkerFaceColor',rgb('Orange'),'MarkerEdgeColor',rgb('Orange'));
-    scatter(cam2_dets_gnd_original(:,1),cam2_dets_gnd_original(:,2),'MarkerFaceColor',rgb('Purple'),'MarkerEdgeColor',rgb('Purple'));
-    xlabel('x(m)') % x-axis label
-    ylabel('y(m)') % y-axis label
-
-    subplot(2,2,2);
-    plot(1:N,distances);
-    title('Distance between adjusted matchings.')
-    xlabel('N') % x-axis label
-    ylabel('distance(m)') % y-axis label
-
-    subplot(2,2,3);
-    plot(1:N,region_shifts,'r');
-    title('Avg distance shifts of camera regions.')
-    xlabel('N') % x-axis label
-    ylabel('shift(m)') % y-axis label
-
-    subplot(2,2,4);
-    plot(1:(N-1),dd,'g');
-    title('Derivative of adjustments.')
-    xlabel('N') % x-axis label
-    ylabel('d(distance)/dN') % y-axis label
 end
 
 %function reg = cw(in_reg) % Clockwise ordering of the points (works for convex polygons)

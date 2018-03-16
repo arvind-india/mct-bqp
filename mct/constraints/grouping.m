@@ -1,4 +1,4 @@
-function T = grouping(N,k,groups,targs,targs_percam,cands_homo, G_sigma)
+function T = grouping(N,k,groups,targs,targs_percam,cands, G_sigma)
     T = zeros(N*k,N*k);
     for i1=1:N
         for i2=1:N
@@ -14,8 +14,8 @@ function T = grouping(N,k,groups,targs,targs_percam,cands_homo, G_sigma)
                             T((i1-1)*k + j1,(i2-1)*k + j2) = 0;
                         % TODO else
                         else
-                            c1 = cands_homo{i1}(j1,:); % Candidate belonging to t1
-                            c2 = cands_homo{i2}(j2,:); % Candidate belonging to t2
+                            c1 = cands{i1}(j1,5:6); % Candidate belonging to t1
+                            c2 = cands{i2}(j2,5:6); % Candidate belonging to t2
                             dist = pdist([c1;c2],'minkowski',2);
                             % TODO if the targets are in the same group
                             if groups{cam1}(t1(3)) == groups{cam1}(t2(3))
