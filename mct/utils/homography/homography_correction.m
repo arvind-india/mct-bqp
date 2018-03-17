@@ -22,7 +22,6 @@ function [H1, H2, cam1_dets_gnd, cam2_dets_gnd, cam1_region_gnd, cam2_region_gnd
       n_c2{1,i} = cam2_dets_gnd_original(i,:);
       n_c1{1,i} = cam1_dets_gnd_original(i,:);
     end
-
     region_shifts = zeros(N,1); region1_shift = 0; region2_shift = 0;
     distances = zeros(N,1); dd = zeros(N-1,1);
     for reps = 1:N
@@ -113,6 +112,23 @@ function [H1, H2, cam1_dets_gnd, cam2_dets_gnd, cam1_region_gnd, cam2_region_gnd
         title('Derivative of adjustments.')
         xlabel('N') % x-axis label
         ylabel('d(distance)/dN') % y-axis label
+    end
+
+    figure;
+    hold on;
+    drawPoly(cam1_region_gnd,'Orange',0.5,false); % Draw region
+    drawPoly(cam2_region_gnd,'Purple',0.5,false); % Draw region
+    scatter(cam1_dets_gnd_original(:,1),cam1_dets_gnd_original(:,2),'MarkerFaceColor',rgb('Orange'),'MarkerEdgeColor',rgb('Orange'));
+    scatter(cam2_dets_gnd_original(:,1),cam2_dets_gnd_original(:,2),'MarkerFaceColor',rgb('Purple'),'MarkerEdgeColor',rgb('Purple'));
+    xlabel('x(m)') % x-axis label
+    ylabel('y(m)') % y-axis label
+    for reps = 1:N
+        for i=1:size(cam1_dets_cam,1)
+            scatter(n_c1{reps+1,i}(:,1),n_c1{reps+1,i}(:,2),'MarkerFaceColor',rgb('Yellow'),'MarkerEdgeColor',rgb('Yellow'));
+        end
+        for i=1:size(cam2_dets_cam,1)
+            scatter(n_c2{reps+1,i}(:,1),n_c2{reps+1,i}(:,2),'MarkerFaceColor',rgb('Pink'),'MarkerEdgeColor',rgb('Pink'));
+        end
     end
 end
 

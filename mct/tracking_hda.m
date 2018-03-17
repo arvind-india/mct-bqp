@@ -36,7 +36,7 @@ initial_speed_y = 0;
 dx = 70; dy = 100;
 Alpha = 1.0; % weight of the appearance constraint
 Zeta = 0.0; % weight of the motion constraint
-update_homo = 0;
+update_homo = 1;
 a_sigma = 2; m_sigma = [0.5 0; 0 0.5]; G_sigma =  2 * (2 ^ 2);
 weights = cell(2,1);
 %%=========================================================
@@ -281,7 +281,7 @@ for f = 1:(num_frames - 1)
             homog_solver = 'svd'; % Method to compute homographies
             [rho_r, rho_d, best_N] = determineRho(v_matchings, inplanes, ground_plane_regions, homog_solver); % Determines good rho values for convergence
             [H1, H2, cam1_dets_gnd, cam2_dets_gnd, cam1_region_gnd, cam2_region_gnd] = homography_correction(v_matchings, inplanes, ...
-            ground_plane_regions, homog_solver, best_N, rho_r, rho_d, 'no_debug');
+            ground_plane_regions, homog_solver, best_N, rho_r, rho_d, 'debug');
             homographies{1} = H1; homographies{2} = H2;
             % Update existing camera regions and positions with the new adjusted ones
             ground_plane_regions_adjusted{1} = cam1_region_gnd;
