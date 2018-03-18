@@ -121,6 +121,7 @@ for f = 1:(num_frames - 1)
             end
         end
     end
+
     if ~isempty(targs_in_overlap)
         if f ~= 1
             motion_models_overlap = cell2mat(motion_models_overlap');
@@ -280,7 +281,7 @@ for f = 1:(num_frames - 1)
             fprintf('\t\t Correcting homographies...\n');
             homog_solver = 'svd'; % Method to compute homographies
             [rho_r, rho_d, best_N] = determineRho(v_matchings, inplanes, ground_plane_regions, homog_solver); % Determines good rho values for convergence
-            [H1, H2, cam1_dets_gnd, cam2_dets_gnd, cam1_region_gnd, cam2_region_gnd] = homography_correction(v_matchings, inplanes, ...
+            [H1, H2, cam1_dets_gnd, cam2_dets_gnd, cam1_region_gnd, cam2_region_gnd, n_c1, n_c2] = homography_correction(v_matchings, inplanes, ...
             ground_plane_regions, homog_solver, best_N, rho_r, rho_d, 'debug');
             homographies{1} = H1; homographies{2} = H2;
             % Update existing camera regions and positions with the new adjusted ones

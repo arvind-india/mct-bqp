@@ -1,4 +1,4 @@
-function [H1, H2, cam1_dets_gnd, cam2_dets_gnd, cam1_region_gnd, cam2_region_gnd] = homography_correction(matchings, inplanes, ground_plane_regions, homog_solver, N, rho_r, rho_d, debug)
+function [H1, H2, cam1_dets_gnd, cam2_dets_gnd, cam1_region_gnd, cam2_region_gnd, n_c1, n_c2] = homography_correction(matchings, inplanes, ground_plane_regions, homog_solver, N, rho_r, rho_d, debug)
     %-----------------------------PREAMBLE---------------------------------
     cam1_region_cam = inplanes{1};
     cam2_region_cam = inplanes{2};
@@ -17,6 +17,7 @@ function [H1, H2, cam1_dets_gnd, cam2_dets_gnd, cam1_region_gnd, cam2_region_gnd
         % DEBUG
         figure; subplot(2,2,1); hold on; title('Iterations converging on the ground plane.')
     end
+    n_r2 = cell(N+1,1); n_r1 = cell(N+1,1);
     n_c2 = cell(N+1,size(cam2_dets_gnd,2)); n_c1 = cell(N+1,size(cam1_dets_gnd,1));
     for i=1:size(cam2_dets_cam,1)
       n_c2{1,i} = cam2_dets_gnd_original(i,:);
@@ -44,7 +45,7 @@ function [H1, H2, cam1_dets_gnd, cam2_dets_gnd, cam1_region_gnd, cam2_region_gnd
         end
         %NOTE: There was a problem here with the clockwise ordenation of points, it made the method not converge
         cam2_region_gnd = reg2gnd(cam2_region_cam, H2);
-
+        n_r2{reps+1} = cam2_region_gnd;
         % Compute new cam1 ground plane regions and detections with n_H1
         %cam1_dets_gnd = H(n_H1,cam1_dets_cam);
         for i=1:size(cam1_dets_cam,1)
@@ -52,6 +53,7 @@ function [H1, H2, cam1_dets_gnd, cam2_dets_gnd, cam1_region_gnd, cam2_region_gnd
           n_c1{reps+1,i} = cam1_dets_gnd(i,:);
         end
         cam1_region_gnd = reg2gnd(cam1_region_cam, H1);
+        n_r1{reps+1} = cam1_region_gnd;
         if strcmp(debug,'debug') %DEBUG
             drawPoly(cam1_region_gnd,'Yellow',0.5,false); % Draw region
             drawPoly(cam2_region_gnd,'Pink',0.5,false); % Draw region
@@ -114,37 +116,55 @@ function [H1, H2, cam1_dets_gnd, cam2_dets_gnd, cam1_region_gnd, cam2_region_gnd
         ylabel('d(distance)/dN') % y-axis label
     end
 
+    ns1 = cell2mat(n_c1);
+    ns2 = cell2mat(n_c2);
+    % NOTE Make GIFs of the detections (a gif per actual pedestrian)
+    for i = 1:size(cam1_dets_gnd,1)
+        figure;
+        hold on;
+        sz = 15;
+        xlabel('x(m)') % x-axis label
+        ylabel('y(m)') % y-axis label
+        for reps = 1:N
+            scatter(cam1_dets_gnd_original(i,1),cam1_dets_gnd_original(i,2),sz,'MarkerFaceColor',rgb('Orange'),'MarkerEdgeColor',rgb('Orange'));
+            scatter(cam2_dets_gnd_original(i,1),cam2_dets_gnd_original(i,2),sz,'MarkerFaceColor',rgb('Purple'),'MarkerEdgeColor',rgb('Purple'));
+            scatter(n_c1{reps+1,i}(:,1),n_c1{reps+1,i}(:,2),sz,'MarkerFaceColor',rgb('Red'),'MarkerEdgeColor',rgb('Yellow'));
+            scatter(n_c2{reps+1,i}(:,1),n_c2{reps+1,i}(:,2),sz,'MarkerFaceColor',rgb('Blue'),'MarkerEdgeColor',rgb('Pink'));
+
+            plot(ns1(1:reps+1,2*(i-1)+1),ns1(1:reps+1,2*(i-1)+2),'k');
+            plot(ns2(1:reps+1,2*(i-1)+1),ns2(1:reps+1,2*(i-1)+2),'k');
+
+            frame = getframe(gcf);
+            img =  frame2im(frame);
+            [img,cmap] = rgb2ind(img,256);
+            if reps == 1
+               imwrite(img,cmap,strcat('pedestrian',num2str(i),'.gif'),'gif','LoopCount',Inf,'DelayTime',1);
+            else
+               imwrite(img,cmap,strcat('pedestrian',num2str(i),'.gif'),'gif','WriteMode','append','DelayTime',1);
+            end
+        end
+
+    end
+    % NOTE Make GIFs of the regions
     figure;
     hold on;
-    drawPoly(cam1_region_gnd,'Orange',0.5,false); % Draw region
-    drawPoly(cam2_region_gnd,'Purple',0.5,false); % Draw region
-    scatter(cam1_dets_gnd_original(:,1),cam1_dets_gnd_original(:,2),'MarkerFaceColor',rgb('Orange'),'MarkerEdgeColor',rgb('Orange'));
-    scatter(cam2_dets_gnd_original(:,1),cam2_dets_gnd_original(:,2),'MarkerFaceColor',rgb('Purple'),'MarkerEdgeColor',rgb('Purple'));
     xlabel('x(m)') % x-axis label
     ylabel('y(m)') % y-axis label
     for reps = 1:N
-        for i=1:size(cam1_dets_cam,1)
-            scatter(n_c1{reps+1,i}(:,1),n_c1{reps+1,i}(:,2),'MarkerFaceColor',rgb('Yellow'),'MarkerEdgeColor',rgb('Yellow'));
-        end
-        for i=1:size(cam2_dets_cam,1)
-            scatter(n_c2{reps+1,i}(:,1),n_c2{reps+1,i}(:,2),'MarkerFaceColor',rgb('Pink'),'MarkerEdgeColor',rgb('Pink'));
+        drawPoly(cam1_region_gnd,'Orange',1,false); % Draw region
+        drawPoly(cam2_region_gnd,'Purple',1,false); % Draw region
+        drawPoly(n_r1{reps+1},'Yellow',0.5,false); % Draw region
+        drawPoly(n_r2{reps+1},'Pink',0.5,false); % Draw region
+        frame = getframe(gcf);
+        img =  frame2im(frame);
+        [img,cmap] = rgb2ind(img,256);
+        if reps == 1
+           imwrite(img,cmap,'regions.gif','gif','LoopCount',Inf,'DelayTime',1);
+        else
+           imwrite(img,cmap,'regions.gif','gif','WriteMode','append','DelayTime',1);
         end
     end
 end
-
-%function reg = cw(in_reg) % Clockwise ordering of the points (works for convex polygons)
-%    x = in_reg(:,1);
-%    y = in_reg(:,2);
-%    cx = mean(x);
-%    cy = mean(y);
-%    a = atan2(y - cy, x - cx);
-%    [~, order] = sort(a);
-%    x = x(order);
-%    y = y(order);
-%    reg = in_reg;
-%    reg(:,1) = x;
-%    reg(:,2) = y;
-%end
 
 function gpreg = reg2gnd(in_reg, h)
     s = size(in_reg,1);
