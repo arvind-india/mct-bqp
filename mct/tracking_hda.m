@@ -34,10 +34,10 @@ comfort_distance = 1.5; % Anyone closer than this meters is in talking range?
 initial_speed_x = 1.0;
 initial_speed_y = 0;
 dx = 70; dy = 100;
-Alpha = 1.0; % weight of the appearance constraint
-Zeta = 0.0; % weight of the motion constraint
+Alpha = [1.0 0.0]; % weight of the appearance constraint
+Zeta = [0.0 0.0]; % weight of the motion constraint
 update_homo = 1;
-a_sigma = 2; m_sigma = [0.5 0; 0 0.5]; G_sigma =  2 * (2 ^ 2);
+a_sigma = [2 ^ 2 0.0; 0.0 2 ^ 2]; m_sigma = [0.5 0; 0 0.5]; G_sigma =  2 * (2 ^ 2);
 weights = cell(2,1);
 %%=========================================================
 debug_test_frames = 2; % DEBUG test these frames
@@ -110,8 +110,7 @@ for f = 1:(num_frames - 1)
 
     %---------------------------------------------------------------------------
     % TODO store the ones that are ambiguous for homography correction in targs_in_overlap (i.e gating part 1)
-    fprintf('\t Checking for targets in the overlapping regions...\n');
-
+    fprintf('\t Checking for targets in the overlapping regions...\n')
     targs_in_overlap = {}; motion_models_overlap = {};
     for t = 1:size(targs,1)
         if polyin([targs(t,8) targs(t,9)],overlap)
@@ -144,7 +143,6 @@ for f = 1:(num_frames - 1)
         %plotAppeance(c_a,i,n,k,cameraListImages,f,targs_percam,cameras,cands_percam, start_frames,cands_percam);
     end
     a = cell2mat(a);
-    %a = a./max(abs(a(:))); % TODO This normalization should help?
     %---------------------------------------------------------------------------
     % TODO create motion models
     if f == 1
@@ -270,7 +268,6 @@ for f = 1:(num_frames - 1)
         %---------------------------------------------------------------------------
         % NOTE homography Correction can be done separately, independently of how the target coupling is solved
         % TODO correct homographies and ALL detections using these homographies
-        %set(0,'DefaultFigureVisible','on');
         if rem(f-1,psi) == 0 && ~isempty(valid_matchings{1}) && ~isempty(valid_matchings{2}) && update_homo
             v_matchings = cell(2,1);
             for i=1:length(cameras)
@@ -291,7 +288,6 @@ for f = 1:(num_frames - 1)
             adjusted_positions{1}{end+1} = cam1_dets_gnd;
             adjusted_positions{2}{end+1} = cam2_dets_gnd;
         end
-        %set(0,'DefaultFigureVisible','off');
     end
 
     %#############################################################################################################################

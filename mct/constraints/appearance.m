@@ -11,8 +11,7 @@ function [c_a, w, Z, y] = appearance(k,n,targs,cands,image,next_image,type,lambd
     % TODO Create labels
     y = zeros(T,1);
     % TODO Create a gaussian distribution in that grid. We assume correlations are null
-    cov_matrix = [a_sigma^2 0.0; 0.0 a_sigma^2];
-    gaussian = gauss2d([sqrt(T) sqrt(T)], cov_matrix, round([sqrt(T)/2 sqrt(T)/2]));
+    gaussian = gauss2d([sqrt(T) sqrt(T)], a_sigma, round([sqrt(T)/2 sqrt(T)/2]));
     % Get the target location/bb and slide it around in the current frame t
     startx = targs(i,4); starty = targs(i,5);
     bb_width = targs(i,6); bb_height = targs(i,7);
