@@ -1,4 +1,3 @@
-addpath('/home/pedro/rcnn');
 set(0,'DefaultFigureVisible','off');
 setDetectionParams_campus2;
 setTrackerParams;

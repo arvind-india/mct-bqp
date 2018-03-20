@@ -24,7 +24,7 @@ function [H1, H2, cam1_dets_gnd, cam2_dets_gnd, cam1_region_gnd, cam2_region_gnd
       n_c1{1,i} = cam1_dets_gnd_original(i,:);
     end
     region_shifts = zeros(N,1); region1_shift = 0; region2_shift = 0;
-    distances = zeros(N,1); dd = zeros(N-1,1);
+    distances = zeros(N,1); dd = zeros(N-1,1); distances_1 = zeros(N,1); distances_2 = zeros(N,1);
     for reps = 1:N
         % "Fix" H1 and compute new H2
         regdet_mat1 = vertcat(repmat(cam2_region_cam,rho_r,1), repmat(cam2_dets_cam,rho_d,1));
@@ -60,6 +60,8 @@ function [H1, H2, cam1_dets_gnd, cam2_dets_gnd, cam1_region_gnd, cam2_region_gnd
             scatter(cam1_dets_gnd(:,1),cam1_dets_gnd(:,2),'MarkerFaceColor',rgb('Yellow'),'MarkerEdgeColor',rgb('Yellow'));
             scatter(cam2_dets_gnd(:,1),cam2_dets_gnd(:,2),'MarkerFaceColor',rgb('Pink'),'MarkerEdgeColor',rgb('Pink'));
         end
+        distances_1(reps) = pdist([cam2_dets_gnd(1,:); cam1_dets_gnd(1,:)]);
+        distances_2(reps) = pdist([cam2_dets_gnd(2,:); cam1_dets_gnd(2,:)]);
         for i = 1:size(cam1_dets_gnd,1)
             distances(reps) = distances(reps) + pdist([cam2_dets_gnd(i,:); cam1_dets_gnd(i,:)]);
         end
@@ -118,50 +120,63 @@ function [H1, H2, cam1_dets_gnd, cam2_dets_gnd, cam1_region_gnd, cam2_region_gnd
 
     ns1 = cell2mat(n_c1);
     ns2 = cell2mat(n_c2);
-    % NOTE Make GIFs of the detections (a gif per actual pedestrian)
-    for i = 1:size(cam1_dets_gnd,1)
+
+    figure;
+    hold on;
+    plot(1:N,distances_1,'g');
+    plot(1:N,distances_2,'m');
+    legend('Pedestrian 1', 'Pedestrian 2');
+    title('Distance between adjusted matchings for both pedestrians.')
+    xlabel('N') % x-axis label
+    ylabel('distance(m)') % y-axis label
+
+    make_gif = 0;
+    if make_gif == 1
+        % NOTE Make GIFs of the detections (a gif per actual pedestrian)
+        for i = 1:size(cam1_dets_gnd,1)
+            figure;
+            hold on;
+            sz = 15;
+            xlabel('x(m)') % x-axis label
+            ylabel('y(m)') % y-axis label
+            for reps = 1:N
+                scatter(cam1_dets_gnd_original(i,1),cam1_dets_gnd_original(i,2),sz,'MarkerFaceColor',rgb('Orange'),'MarkerEdgeColor',rgb('Orange'));
+                scatter(cam2_dets_gnd_original(i,1),cam2_dets_gnd_original(i,2),sz,'MarkerFaceColor',rgb('Purple'),'MarkerEdgeColor',rgb('Purple'));
+                scatter(n_c1{reps+1,i}(:,1),n_c1{reps+1,i}(:,2),sz,'MarkerFaceColor',rgb('Red'),'MarkerEdgeColor',rgb('Yellow'));
+                scatter(n_c2{reps+1,i}(:,1),n_c2{reps+1,i}(:,2),sz,'MarkerFaceColor',rgb('Blue'),'MarkerEdgeColor',rgb('Pink'));
+
+                plot(ns1(1:reps+1,2*(i-1)+1),ns1(1:reps+1,2*(i-1)+2),'k');
+                plot(ns2(1:reps+1,2*(i-1)+1),ns2(1:reps+1,2*(i-1)+2),'k');
+
+                frame = getframe(gcf);
+                img =  frame2im(frame);
+                [img,cmap] = rgb2ind(img,256);
+                if reps == 1
+                   imwrite(img,cmap,strcat('pedestrian',num2str(i),'.gif'),'gif','LoopCount',Inf,'DelayTime',1);
+                else
+                   imwrite(img,cmap,strcat('pedestrian',num2str(i),'.gif'),'gif','WriteMode','append','DelayTime',1);
+                end
+            end
+
+        end
+        % NOTE Make GIFs of the regions
         figure;
         hold on;
-        sz = 15;
         xlabel('x(m)') % x-axis label
         ylabel('y(m)') % y-axis label
         for reps = 1:N
-            scatter(cam1_dets_gnd_original(i,1),cam1_dets_gnd_original(i,2),sz,'MarkerFaceColor',rgb('Orange'),'MarkerEdgeColor',rgb('Orange'));
-            scatter(cam2_dets_gnd_original(i,1),cam2_dets_gnd_original(i,2),sz,'MarkerFaceColor',rgb('Purple'),'MarkerEdgeColor',rgb('Purple'));
-            scatter(n_c1{reps+1,i}(:,1),n_c1{reps+1,i}(:,2),sz,'MarkerFaceColor',rgb('Red'),'MarkerEdgeColor',rgb('Yellow'));
-            scatter(n_c2{reps+1,i}(:,1),n_c2{reps+1,i}(:,2),sz,'MarkerFaceColor',rgb('Blue'),'MarkerEdgeColor',rgb('Pink'));
-
-            plot(ns1(1:reps+1,2*(i-1)+1),ns1(1:reps+1,2*(i-1)+2),'k');
-            plot(ns2(1:reps+1,2*(i-1)+1),ns2(1:reps+1,2*(i-1)+2),'k');
-
+            drawPoly(cam1_region_gnd,'Orange',1,false); % Draw region
+            drawPoly(cam2_region_gnd,'Purple',1,false); % Draw region
+            drawPoly(n_r1{reps+1},'Yellow',0.5,false); % Draw region
+            drawPoly(n_r2{reps+1},'Pink',0.5,false); % Draw region
             frame = getframe(gcf);
             img =  frame2im(frame);
             [img,cmap] = rgb2ind(img,256);
             if reps == 1
-               imwrite(img,cmap,strcat('pedestrian',num2str(i),'.gif'),'gif','LoopCount',Inf,'DelayTime',1);
+               imwrite(img,cmap,'regions.gif','gif','LoopCount',Inf,'DelayTime',1);
             else
-               imwrite(img,cmap,strcat('pedestrian',num2str(i),'.gif'),'gif','WriteMode','append','DelayTime',1);
+               imwrite(img,cmap,'regions.gif','gif','WriteMode','append','DelayTime',1);
             end
-        end
-
-    end
-    % NOTE Make GIFs of the regions
-    figure;
-    hold on;
-    xlabel('x(m)') % x-axis label
-    ylabel('y(m)') % y-axis label
-    for reps = 1:N
-        drawPoly(cam1_region_gnd,'Orange',1,false); % Draw region
-        drawPoly(cam2_region_gnd,'Purple',1,false); % Draw region
-        drawPoly(n_r1{reps+1},'Yellow',0.5,false); % Draw region
-        drawPoly(n_r2{reps+1},'Pink',0.5,false); % Draw region
-        frame = getframe(gcf);
-        img =  frame2im(frame);
-        [img,cmap] = rgb2ind(img,256);
-        if reps == 1
-           imwrite(img,cmap,'regions.gif','gif','LoopCount',Inf,'DelayTime',1);
-        else
-           imwrite(img,cmap,'regions.gif','gif','WriteMode','append','DelayTime',1);
         end
     end
 end
