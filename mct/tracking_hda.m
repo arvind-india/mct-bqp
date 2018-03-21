@@ -29,7 +29,7 @@ score_threshold = 0.4;
 comfort_distance = 1.5; % Anyone closer than this meters is in talking range?
 initial_speed_x = 10.0;
 initial_speed_y = 0;
-dx = 25; dy = 25;
+dx = 9; dy = 50;
 Alpha = [0.0 0.0]; % weight of the appearance constraint
 Zeta = [1.0 1.0]; % weight of the motion constraint
 update_homo = true;
@@ -326,6 +326,8 @@ figure; hold on;
 % TODO Plot ground truths
 colors = {'Orange','Purple','Grey'};
 colors_adjusted = {'Red','Blue','Black'};
+colors_nohomo = {'Gold','Silver'};
+gndtruth = cell(2,1);
 for i = 1:length(cameras)
     % DEBUG Define a specific frame here for debug to see all candidates of that specific frame
     if show_candidates == true
@@ -340,27 +342,46 @@ for i = 1:length(cameras)
         drawPoly(ground_plane_regions_adjusted{i},colors_adjusted{i},0.5,false);
     end
 end
-drawPoly(overlap,colors{3},1.0,false);
+%drawPoly(overlap,colors{3},1.0,false);
 if ~isempty(ground_plane_regions_adjusted{1}) &&  ~isempty(ground_plane_regions_adjusted{2})
     drawPoly(overlap_adjusted, colors_adjusted{3},1.0,false);
 end
 % TODO Plot no homography correction
+nohomocorrec_plots = cell(2,1);
 for s = 1:length(nohomocorrec_tracklets)
     if nohomocorrec_tracklets{s}(1,1) == 1
-        plot(nohomocorrec_tracklets{s}(:,8),nohomocorrec_tracklets{s}(:,9),'s-','Color',rgb(colors(3)));
+        %plot(nohomocorrec_tracklets{s}(:,8),nohomocorrec_tracklets{s}(:,9),'s-','Color',rgb('Gold'));
+        nohomocorrec_plots{1}{end+1} = nohomocorrec_tracklets{s};
     else
-        plot(nohomocorrec_tracklets{s}(:,8),nohomocorrec_tracklets{s}(:,9),'s-','Color',rgb(colors(3)));
+        %plot(nohomocorrec_tracklets{s}(:,8),nohomocorrec_tracklets{s}(:,9),'s-','Color',rgb('Silver'));
+        nohomocorrec_plots{2}{end+1} = nohomocorrec_tracklets{s};
     end
 end
+nohomocorrec_plots{1} = cell2mat(transpose(nohomocorrec_plots{1}));
+nohomocorrec_plots{2} = cell2mat(transpose(nohomocorrec_plots{2}));
 % TODO Plot WITH homography correction
+plots = cell(2,1);
 for s = 1:length(tracklets)
     if tracklets{s}(1,1) == 1
-        plot(tracklets{s}(:,8),tracklets{s}(:,9),'s-','Color',rgb('Red'));
+        %plot(tracklets{s}(:,8),tracklets{s}(:,9),'s-','Color',rgb('Red'));
+        plots{1}{end+1} = tracklets{s};
     else
-        plot(tracklets{s}(:,8),tracklets{s}(:,9),'s-','Color',rgb('Blue'));
+        %plot(tracklets{s}(:,8),tracklets{s}(:,9),'s-','Color',rgb('Blue'));
+        plots{2}{end+1} = tracklets{s};
     end
 end
+plots{1} = cell2mat(transpose(plots{1}));
+plots{2} = cell2mat(transpose(plots{2}));
 
+
+for i = 1:length(cameras)
+    nohomocorrec_plots{i} = accumarray(nohomocorrec_plots{i}(:,3),(1:size(nohomocorrec_plots{i},1)).',[],@(x){nohomocorrec_plots{i}(x,:)},{});
+    plots{i} = accumarray(plots{i}(:,3),(1:size(plots{i},1)).',[],@(x){plots{i}(x,:)},{});
+    for s = 1:size(nohomocorrec_plots{i},1)
+        plot(nohomocorrec_plots{i}{s}(:,8),nohomocorrec_plots{i}{s}(:,9),'s-','Color',rgb(colors_nohomo{i}));
+        plot(plots{i}{s}(:,8),plots{i}{s}(:,9),'s-','Color',rgb(colors_adjusted{i}));
+    end
+end
 if show_ground_truth == true
     for f = 1:(num_frames - 1)
         if f == debug_gnd_truth_frames + 1 % DEBUG Always draw one more for debug reasons
@@ -368,11 +389,15 @@ if show_ground_truth == true
         end
         truth1 = gnd_detections{1}{start_frames(1) + f};
         truth2 = gnd_detections{2}{start_frames(2) + f};
-        for i = 1:size(truth1,1)
-            scatter(truth1(:,8),truth1(:,9),'MarkerFaceColor',rgb('Orange'),'MarkerEdgeColor',rgb('Orange'));
-        end
-        for i = 1:size(truth2,1)
-            scatter(truth2(:,8),truth2(:,9),'MarkerFaceColor',rgb('Purple'),'MarkerEdgeColor',rgb('Purple'));
-        end
+        scatter(truth1(:,8),truth1(:,9),'MarkerFaceColor',rgb('Orange'),'MarkerEdgeColor',rgb('Orange'));
+        scatter(truth2(:,8),truth2(:,9),'MarkerFaceColor',rgb('Purple'),'MarkerEdgeColor',rgb('Purple'));
     end
 end
+legend('Original cam 40 region', 'Corrected cam 40 region', 'Original cam 19 region', 'Corrected cam 19 region', 'Overlap region', ...
+'Pedestrian 1 -- Cam 40','Corrected Pedestrian 1 -- Cam 40', ...
+'Pedestrian 2 -- Cam 40','Corrected Pedestrian 2 -- Cam 40', ...
+'Pedestrian 1 -- Cam 19','Corrected Pedestrian 1 -- Cam 19',...
+'Pedestrian 2 -- Cam 19','Corrected Pedestrian 2 -- Cam 19',...
+'Initial detections Cam 40','Initial detections Cam 19');
+xlabel('x(m)') % x-axis label
+ylabel('y(m)') % y-axis label
