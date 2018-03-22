@@ -34,6 +34,10 @@ Alpha = [0.0 0.0]; % weight of the appearance constraint
 Zeta = [1.0 1.0]; % weight of the motion constraint
 update_homo = true;
 a_sigma = [2 ^ 2 0.0; 0.0 2 ^ 2]; m_sigma = [0.5 0; 0 0.5]; G_sigma =  2 * (2 ^ 2);
+rho_m = 10;
+rho_r = 1;
+N_h = 100; % Number of iterations
+homog_solver = 'svd'; % Method to compute homographies, NOTE must be either 'svd' or 'ransac'
 weights = cell(2,1);
 %%=========================================================
 debug_test_frames = 2; % DEBUG test these frames
@@ -102,8 +106,8 @@ for update_homo = 0:1 % DEBUG merely for debug, would never use this is "product
                     cy = t_rect(2) + gridy * sampling_dy;
                     cands{t}(counter,:) = [cx cy t_rect(3:4) transpose(H(homographies{targs(t,1)}, [cx+t_rect(3)/2; cy+t_rect(4)]))];
                 elseif strcmp(sampling_plane,'ground')
-                    sampling_dx = 0.1; % TODO Bernardino proposed a way to actually get bb width from gnd plane
-                    sampling_dy = 0.2; % TODO but we would need some data we do not have :(
+                    sampling_dx = 0.05; % TODO Bernardino proposed a way to actually get bb width from gnd plane
+                    sampling_dy = 0.02; % TODO but we would need some data we do not have :(
                     g_cx = t_pos(1) + gridx * sampling_dx;
                     g_cy = t_pos(2) + gridy * sampling_dy;
                     c_pos = transpose(H(invhomographies{targs(t,1)}, [g_cx; g_cy]));
@@ -282,10 +286,8 @@ for update_homo = 0:1 % DEBUG merely for debug, would never use this is "product
                 end
             end
             fprintf('\t\t Correcting homographies...\n');
-            homog_solver = 'svd'; % Method to compute homographies
-            [rho_r, rho_d, best_N] = determineRho(v_matchings, inplanes, ground_plane_regions, homog_solver); % Determines good rho values for convergence
             [H1, H2, cam1_dets_gnd, cam2_dets_gnd, cam1_region_gnd, cam2_region_gnd, n_c1, n_c2] = homography_correction(v_matchings, inplanes, ...
-            ground_plane_regions, homog_solver, best_N, rho_r, rho_d, homocorrec_debug);
+            ground_plane_regions, homog_solver, N_h, rho_r, rho_d, homocorrec_debug);
             homographies{1} = H1; homographies{2} = H2;
             % Update existing camera regions and positions with the new adjusted ones
             ground_plane_regions_adjusted{1} = cam1_region_gnd;
