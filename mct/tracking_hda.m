@@ -40,6 +40,8 @@ debug_test_frames = 2; % DEBUG test these frames
 show_ground_truth = true;
 show_candidates = false;
 show_predicted_bbs = false;
+draw_regions = false;
+sampling_plane = 'camera'; % NOTE Must be either 'camera' or 'ground'
 homocorrec_debug = 'no_debug';
 candidates_frame = 2;
 debug_gnd_truth_frames = 1;
@@ -93,12 +95,20 @@ for update_homo = 0:1 % DEBUG merely for debug, would never use this is "product
             counter = 1;
             for gridx = -floor(g_candidates/2):floor(g_candidates/2)
               for gridy = -floor(g_candidates/2):floor(g_candidates/2)
-                sampling_dx = t_rect(3)/dx;
-                sampling_dy = t_rect(4)/dy;
-                % TODO Normal candidates
-                cx = t_rect(1) + gridx * sampling_dx;% startx + gridx * xstep
-                cy = t_rect(2) + gridy * sampling_dy; % starty + gridy * ystep
-                cands{t}(counter,:) = [cx cy t_rect(3:4) transpose(H(homographies{targs(t,1)}, [cx+t_rect(3)/2; cy+t_rect(4)]))];
+                if strcmp(sampling_plane,'camera')
+                    sampling_dx = t_rect(3)/dx;
+                    sampling_dy = t_rect(4)/dy;
+                    cx = t_rect(1) + gridx * sampling_dx;
+                    cy = t_rect(2) + gridy * sampling_dy;
+                    cands{t}(counter,:) = [cx cy t_rect(3:4) transpose(H(homographies{targs(t,1)}, [cx+t_rect(3)/2; cy+t_rect(4)]))];
+                elseif strcmp(sampling_plane,'ground')
+                    sampling_dx = 0.1; % TODO Bernardino proposed a way to actually get bb width from gnd plane
+                    sampling_dy = 0.2; % TODO but we would need some data we do not have :(
+                    g_cx = t_pos(1) + gridx * sampling_dx;
+                    g_cy = t_pos(2) + gridy * sampling_dy;
+                    c_pos = transpose(H(invhomographies{targs(t,1)}, [g_cx; g_cy]));
+                    cands{t}(counter,:) = [c_pos(1) c_pos(2) t_rect(3:4) g_cx g_cy];
+                end
                 counter = counter + 1;
               end
             end
@@ -326,7 +336,7 @@ figure; hold on;
 % TODO Plot ground truths
 colors = {'Orange','Purple','Grey'};
 colors_adjusted = {'Red','Blue','Black'};
-colors_nohomo = {'Gold','Silver'};
+colors_nohomo = {'Pink','SkyBlue'};
 gndtruth = cell(2,1);
 for i = 1:length(cameras)
     % DEBUG Define a specific frame here for debug to see all candidates of that specific frame
@@ -337,14 +347,18 @@ for i = 1:length(cameras)
             end
         end
     end
-    drawPoly(ground_plane_regions{i},colors{i},0.5,false); % Draw regions
-    if ~isempty(ground_plane_regions_adjusted{i})
-        drawPoly(ground_plane_regions_adjusted{i},colors_adjusted{i},0.5,false);
+    if draw_regions == true
+        drawPoly(ground_plane_regions{i},colors{i},0.5,false); % Draw regions
+        if ~isempty(ground_plane_regions_adjusted{i})
+            drawPoly(ground_plane_regions_adjusted{i},colors_adjusted{i},0.5,false);
+        end
     end
 end
-%drawPoly(overlap,colors{3},1.0,false);
-if ~isempty(ground_plane_regions_adjusted{1}) &&  ~isempty(ground_plane_regions_adjusted{2})
-    drawPoly(overlap_adjusted, colors_adjusted{3},1.0,false);
+if draw_regions == true
+    %drawPoly(overlap,colors{3},1.0,false);
+    if ~isempty(ground_plane_regions_adjusted{1}) &&  ~isempty(ground_plane_regions_adjusted{2})
+        drawPoly(overlap_adjusted, colors_adjusted{3},1.0,false);
+    end
 end
 % TODO Plot no homography correction
 nohomocorrec_plots = cell(2,1);
@@ -373,15 +387,15 @@ end
 plots{1} = cell2mat(transpose(plots{1}));
 plots{2} = cell2mat(transpose(plots{2}));
 
-
 for i = 1:length(cameras)
     nohomocorrec_plots{i} = accumarray(nohomocorrec_plots{i}(:,3),(1:size(nohomocorrec_plots{i},1)).',[],@(x){nohomocorrec_plots{i}(x,:)},{});
     plots{i} = accumarray(plots{i}(:,3),(1:size(plots{i},1)).',[],@(x){plots{i}(x,:)},{});
     for s = 1:size(nohomocorrec_plots{i},1)
-        plot(nohomocorrec_plots{i}{s}(:,8),nohomocorrec_plots{i}{s}(:,9),'s-','Color',rgb(colors_nohomo{i}));
+        plot(nohomocorrec_plots{i}{s}(:,8),nohomocorrec_plots{i}{s}(:,9),'o--','Color',rgb(colors_nohomo{i}));
         plot(plots{i}{s}(:,8),plots{i}{s}(:,9),'s-','Color',rgb(colors_adjusted{i}));
     end
 end
+
 if show_ground_truth == true
     for f = 1:(num_frames - 1)
         if f == debug_gnd_truth_frames + 1 % DEBUG Always draw one more for debug reasons
@@ -393,11 +407,19 @@ if show_ground_truth == true
         scatter(truth2(:,8),truth2(:,9),'MarkerFaceColor',rgb('Purple'),'MarkerEdgeColor',rgb('Purple'));
     end
 end
-legend('Original cam 40 region', 'Corrected cam 40 region', 'Original cam 19 region', 'Corrected cam 19 region', 'Overlap region', ...
-'Pedestrian 1 -- Cam 40','Corrected Pedestrian 1 -- Cam 40', ...
-'Pedestrian 2 -- Cam 40','Corrected Pedestrian 2 -- Cam 40', ...
-'Pedestrian 1 -- Cam 19','Corrected Pedestrian 1 -- Cam 19',...
-'Pedestrian 2 -- Cam 19','Corrected Pedestrian 2 -- Cam 19',...
-'Initial detections Cam 40','Initial detections Cam 19');
+if draw_regions == true
+    legend('Original cam 40 region', 'Corrected cam 40 region', 'Original cam 19 region', 'Corrected cam 19 region', 'Overlap region', ...
+    'Pedestrian 1 -- Cam 40','Corrected Pedestrian 1 -- Cam 40', ...
+    'Pedestrian 2 -- Cam 40','Corrected Pedestrian 2 -- Cam 40', ...
+    'Pedestrian 1 -- Cam 19','Corrected Pedestrian 1 -- Cam 19',...
+    'Pedestrian 2 -- Cam 19','Corrected Pedestrian 2 -- Cam 19',...
+    'Initial detections Cam 40','Initial detections Cam 19');
+else
+    legend('Ped 1 Cam 40','Ped 1 Cam 40', ...
+    'Ped 2 Cam 40','Ped 2 Cam 40', ...
+    'Ped 1 Cam 19','Ped 1 Cam 19',...
+    'Ped 2 Cam 19','Ped 2 Cam 19',...
+    'Initial detections Cam 40','Initial detections Cam 19');
+end
 xlabel('x(m)') % x-axis label
 ylabel('y(m)') % y-axis label

@@ -1,2 +1,2 @@
-addpath(genpath('~/mct-bqp'));
+addpath(genpath('/home/pedro/mct-bqp'))
 disp('MCT-BQP initialized');
