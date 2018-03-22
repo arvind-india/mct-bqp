@@ -5,3 +5,5 @@
 *.jpeg
 *.html
 *.avi
+*.pyc
+*.pdf
