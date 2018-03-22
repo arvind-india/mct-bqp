@@ -55,7 +55,7 @@ while it <= opts.maxIter
 
 
   if gap < opts.DG
-    fprintf('end of FW: reach small duality gap (gap=%f)\n', gap);
+    fprintf('\t\tend of FW: reach small duality gap (gap=%f)\n', gap);
     break
   end
 
@@ -82,7 +82,7 @@ while it <= opts.maxIter
   gap = - d' * grad;
 
   if step < opts.DG
-    fprintf('end of FW: step is too small (step=%f)\n', step)
+    fprintf('\t\tend of FW: step is too small (step=%f)\n', step)
     break
   end
 
