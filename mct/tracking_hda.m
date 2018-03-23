@@ -34,7 +34,7 @@ Alpha = [0.0 0.0]; % weight of the appearance constraint
 Zeta = [1.0 1.0]; % weight of the motion constraint
 update_homo = true;
 a_sigma = [2 ^ 2 0.0; 0.0 2 ^ 2]; m_sigma = [0.5 0; 0 0.5]; G_sigma =  2 * (2 ^ 2);
-rho_m = 10;
+rho_d = 10;
 rho_r = 1;
 N_h = 100; % Number of iterations
 homog_solver = 'svd'; % Method to compute homographies, NOTE must be either 'svd' or 'ransac'
@@ -55,7 +55,7 @@ detection_frames = [start_frames; start_frames + 9; start_frames + 15]; % These 
 %%=========================================================
 fprintf('Starting tracking loop:\n');
 for update_homo = 0:1 % DEBUG merely for debug, would never use this is "production"
-
+    fprintf(['Updating homography: ' num2str(update_homo) '\n']);
     all_candidates = cell(num_frames,1); % Store all candidates (in gnd plane)
     ground_plane_regions_adjusted = cell(2,1);
     valid_matchings = cell(2,1);
@@ -65,7 +65,7 @@ for update_homo = 0:1 % DEBUG merely for debug, would never use this is "product
         if f == debug_test_frames+1
             break;
         end
-        fprintf(['Frame ' num2str(f) ':\n ... \t Getting images...\n']);
+        fprintf(['  Frame ' num2str(f) ':\n \t Getting images...\n']);
         next_images = cell(length(cameras),1); images = cell(length(cameras),1);
         for i = 1:length(cameras)
             next_images{i} = imread(cameraListImages{i}{start_frames(i)+(f+1)});
@@ -395,6 +395,9 @@ for i = 1:length(cameras)
     for s = 1:size(nohomocorrec_plots{i},1)
         plot(nohomocorrec_plots{i}{s}(:,8),nohomocorrec_plots{i}{s}(:,9),'o--','Color',rgb(colors_nohomo{i}));
         plot(plots{i}{s}(:,8),plots{i}{s}(:,9),'s-','Color',rgb(colors_adjusted{i}));
+    end
+    for matches = 1:size(valid_matchings{1},1)
+        plot([valid_matchings{1}(matches,8); valid_matchings{2}(matches,8)],[valid_matchings{1}(matches,9); valid_matchings{2}(matches,9)],'k');
     end
 end
 
