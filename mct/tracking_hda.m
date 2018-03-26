@@ -29,25 +29,22 @@ score_threshold = 0.4;
 comfort_distance = 1.5; % Anyone closer than this meters is in talking range?
 initial_speed_x = 10.0;
 initial_speed_y = 0;
-dx = 9; dy = 50;
-Alpha = [0.0 0.0]; % weight of the appearance constraint
+dx = 10; dy = 50;
+Alpha = [0.5 0.2]; % weight of the appearance constraint
 Zeta = [1.0 1.0]; % weight of the motion constraint
 update_homo = true;
-a_sigma = [2 ^ 2 0.0; 0.0 2 ^ 2]; m_sigma = [0.5 0; 0 0.5]; G_sigma =  2 * (2 ^ 2);
-rho_d = 10;
-rho_r = 1;
-N_h = 100; % Number of iterations
+a_sigma = [1 ^ 2 0.0; 0.0 1 ^ 2]; m_sigma = [0.5 0; 0 0.5]; G_sigma =  2 * (2 ^ 2);
 homog_solver = 'svd'; % Method to compute homographies, NOTE must be either 'svd' or 'ransac'
 weights = cell(2,1);
 %%=========================================================
-debug_test_frames = 2; % DEBUG test these frames
+debug_test_frames = 1; % DEBUG test these frames
 show_ground_truth = true;
-show_candidates = false;
+show_candidates = true;
 show_predicted_bbs = false;
-draw_regions = false;
-sampling_plane = 'camera'; % NOTE Must be either 'camera' or 'ground'
+draw_regions = true;
+sampling_plane = 'ground'; % NOTE Must be either 'camera' or 'ground'
 homocorrec_debug = 'no_debug';
-candidates_frame = 2;
+candidates_frame = 1;
 debug_gnd_truth_frames = 1;
 %%=========================================================
 % Frames at which detections are available/allowed
@@ -108,6 +105,7 @@ for update_homo = 0:1 % DEBUG merely for debug, would never use this is "product
                 elseif strcmp(sampling_plane,'ground')
                     sampling_dx = 0.05; % TODO Bernardino proposed a way to actually get bb width from gnd plane
                     sampling_dy = 0.02; % TODO but we would need some data we do not have :(
+                    %t_pos = transpose(H(homographies{targs(t,1)},[t_rect(3)/2; t_rect(4)]));
                     g_cx = t_pos(1) + gridx * sampling_dx;
                     g_cy = t_pos(2) + gridy * sampling_dy;
                     c_pos = transpose(H(invhomographies{targs(t,1)}, [g_cx; g_cy]));
@@ -286,9 +284,12 @@ for update_homo = 0:1 % DEBUG merely for debug, would never use this is "product
                 end
             end
             fprintf('\t\t Correcting homographies...\n');
+            [rho_r, rho_d, best_N] = determineRho(v_matchings, inplanes, ground_plane_regions, homog_solver); % Determines good rho values for convergence
             [H1, H2, cam1_dets_gnd, cam2_dets_gnd, cam1_region_gnd, cam2_region_gnd, n_c1, n_c2] = homography_correction(v_matchings, inplanes, ...
-            ground_plane_regions, homog_solver, N_h, rho_r, rho_d, homocorrec_debug);
+            ground_plane_regions, homog_solver, best_N, rho_r, rho_d, homocorrec_debug);
             homographies{1} = H1; homographies{2} = H2;
+            invhomographies{1} = inv(homographies{1});
+            invhomographies{2} = inv(homographies{2});
             % Update existing camera regions and positions with the new adjusted ones
             ground_plane_regions_adjusted{1} = cam1_region_gnd;
             ground_plane_regions_adjusted{2} = cam2_region_gnd;
@@ -296,7 +297,6 @@ for update_homo = 0:1 % DEBUG merely for debug, would never use this is "product
             adjusted_positions{1}{end+1} = cam1_dets_gnd;
             adjusted_positions{2}{end+1} = cam2_dets_gnd;
         end
-
         %---------------------------------------------------------------------------
         % TODO update motion models using old targets and predicted targets
         fprintf('\t Updating motion models...\n');
@@ -338,7 +338,7 @@ figure; hold on;
 % TODO Plot ground truths
 colors = {'Orange','Purple','Grey'};
 colors_adjusted = {'Red','Blue','Black'};
-colors_nohomo = {'Pink','SkyBlue'};
+colors_nohomo = {'Salmon','Cyan'};
 gndtruth = cell(2,1);
 for i = 1:length(cameras)
     % DEBUG Define a specific frame here for debug to see all candidates of that specific frame
@@ -372,6 +372,9 @@ for s = 1:length(nohomocorrec_tracklets)
         %plot(nohomocorrec_tracklets{s}(:,8),nohomocorrec_tracklets{s}(:,9),'s-','Color',rgb('Silver'));
         nohomocorrec_plots{2}{end+1} = nohomocorrec_tracklets{s};
     end
+    if s <= length(nohomocorrec_tracklets) - 2 && nohomocorrec_tracklets{s}(1,2) == nohomocorrec_tracklets{s+2}(1,2) + 70
+        plot([nohomocorrec_tracklets{s}(2,8) ; nohomocorrec_tracklets{s+2}(2,8)],[nohomocorrec_tracklets{s}(2,9) ; nohomocorrec_tracklets{s+2}(2,9)],'s--','Color',rgb('Gray'));
+    end
 end
 nohomocorrec_plots{1} = cell2mat(transpose(nohomocorrec_plots{1}));
 nohomocorrec_plots{2} = cell2mat(transpose(nohomocorrec_plots{2}));
@@ -385,6 +388,9 @@ for s = 1:length(tracklets)
         %plot(tracklets{s}(:,8),tracklets{s}(:,9),'s-','Color',rgb('Blue'));
         plots{2}{end+1} = tracklets{s};
     end
+    if s <= length(tracklets) - 2 && tracklets{s}(1,2) == tracklets{s+2}(1,2) + 70
+        plot([tracklets{s}(2,8) ; tracklets{s+2}(2,8)],[tracklets{s}(2,9) ; tracklets{s+2}(2,9)],'k--');
+    end
 end
 plots{1} = cell2mat(transpose(plots{1}));
 plots{2} = cell2mat(transpose(plots{2}));
@@ -396,9 +402,9 @@ for i = 1:length(cameras)
         plot(nohomocorrec_plots{i}{s}(:,8),nohomocorrec_plots{i}{s}(:,9),'o--','Color',rgb(colors_nohomo{i}));
         plot(plots{i}{s}(:,8),plots{i}{s}(:,9),'s-','Color',rgb(colors_adjusted{i}));
     end
-    for matches = 1:size(valid_matchings{1},1)
-        plot([valid_matchings{1}(matches,8); valid_matchings{2}(matches,8)],[valid_matchings{1}(matches,9); valid_matchings{2}(matches,9)],'k');
-    end
+    %for matches = 1:size(valid_matchings{1},2)
+    %    plot([valid_matchings{1}{matches}(:,8); valid_matchings{2}{matches}(:,8)],[valid_matchings{1}{matches}(:,9); valid_matchings{2}{matches}(:,9)],'k');
+    %end
 end
 
 if show_ground_truth == true

@@ -26,6 +26,6 @@ function [H,F,Aeq,Beq,labels] = FW_preamble(N,k,a,m,G,b,Alpha,Zeta,n1,n2)
     H = sparse(G);
     alpha_vec = [ones(n1*k,1) * Alpha(1); ones(n2*k,1) * Alpha(2)];
     zeta_vec = [ones(n1*k,1) * Zeta(1); ones(n2*k,1) * Zeta(2)];
-    %F = alpha_vec .* a + zeta_vec .* m + b;
-    F = Zeta(1) * m + b;
+    F = alpha_vec .* a + zeta_vec .* m + b;
+    %F = Zeta(1) * m + b;
 end

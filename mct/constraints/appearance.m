@@ -60,7 +60,8 @@ function [c_a, w, Z, y] = appearance(k,n,targs,cands,image,next_image,type,lambd
       else
           if ~isempty(weights)
               % TODO integrate new and old weights
-              c_a(j,i) = -Phi(j,:) * weights(:,i);
+              %c_a(j,i) = -Phi(j,:) * weights(:,i);
+              c_a(j,i) = -Phi(j,:) * w_i;
           else
               c_a(j,i) = -Phi(j,:) * w_i;
           end
