@@ -1,4 +1,4 @@
-function valid_matchings = getValidMatchings(i, S, score_threshold, n_ov2, n_ov1, targs_in_overlap, assignments, valid_matchings)
+function valid_matchings = getValidMatchings_lapjv(i, S, score_threshold, n_ov2, n_ov1, targs_in_overlap, assignments, valid_matchings)
     if n_ov2 >= n_ov1
         fprintf('\t\tBest assignment for id %d in cam %d === id %d in cam %d \n', i, targs_in_overlap{1}(i,1),...
         assignments(i), targs_in_overlap{2}(assignments(i),1));

@@ -5,7 +5,8 @@ function [c_a, w, Z, y] = appearance(k,n,targs,cands,image,next_image,type,lambd
   w = zeros(feature_vector_size, n);
   c_a = zeros(k,n);
 
-  T = k; % Number of training examples for the model of the target (same number for every target)
+  % TODO sometimes k is not g_candidates^2 (like in the inter-cam case)
+  T = g_candidates ^ 2; % Number of training examples for the model of the target (same number for every target)
 
   for i=1:n
     % TODO Create labels
