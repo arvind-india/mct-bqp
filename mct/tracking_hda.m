@@ -332,7 +332,7 @@ for update_homo = 0:1 % DEBUG merely for debug, would never use this is "product
                             Y_o = pdist(targs_in_overlap{i}(:,8:9));
 
 
-                            
+
                             Z_o = linkage(Y_o);
                             C_o = cluster(Z_o,'cutoff',comfort_distance,'criterion','distance');
                             groups_o{i} = C_o;
