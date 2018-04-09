@@ -6,6 +6,21 @@ gnd_detections = load_data('mini-campus2', cameras);
 
 kill;
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 % Load the images (needed for the appearance cues)
 cameraListImages = cell(2,1); inplanes = cell(2,1);
 for i=1:length(cameras)

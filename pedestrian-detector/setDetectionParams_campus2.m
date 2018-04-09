@@ -4,7 +4,7 @@ global cameras
 cameras = {'alameda','central'};
 
 global image_directories
-image_directories = {'~/Campus_II/frames_alameda_noon_1_6_2017', '~/Campus_II/frames_central_noon_1_6_2017'};
+image_directories = {'/media/pedro/mct1/Campus_II/frames_alameda_noon_1_6_2017', '/media/pedro/mct1/Campus_II/frames_central_noon_1_6_2017'};
 
 global homography_directory
 homography_directory = '~/mct-bqp/campus2_data/homographies/homography_campus_II.mat';
@@ -87,10 +87,10 @@ global gpu_results
 gpu_results = '/home/pedro/mct-bqp/campus2_data/detections-camplane/GPU/dets_';
 
 global alameda_folder
-alameda_folder = '~/Campus_II/frames_alameda_noon_1_6_2017';
+alameda_folder = '/media/pedro/mct1/Campus_II/frames_alameda_noon_1_6_2017';
 
 global central_folder
-central_folder = '~/Campus_II/frames_central_noon_1_6_2017';
+central_folder = '/media/pedro/mct1/Campus_II/frames_central_noon_1_6_2017';
 
 global regions_folder
 regions_folder = '~/mct-bqp/campus2_data/regions/';

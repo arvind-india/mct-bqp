@@ -1,7 +1,7 @@
 set(0,'DefaultFigureVisible','on');
 setDetectionParams_hda_hall; setTrackerParams;
 
-gnd_detections = load_data('hda', cameras); % TODO Load the images (needed for the appearance cues)
+gnd_detections = load_data('hda', cameras); % Load the images (needed for the appearance cues)
 cameraListImages = cell(2,1); inplanes = cell(2,1);
 for i=1:length(cameras)
     cameraListImages{i} = loadImages(cameras, image_directories{i}, durations(i), 0, 'hda');
@@ -27,13 +27,14 @@ lambda = 0.5; % variable for the appearance cues
 gating_distance = 6.0; % This does actually correspond to 6 meters
 score_threshold = 0.4;
 comfort_distance = 1.5; % Anyone closer than this meters is in talking range?
+homography_group_distance = 0.5; % Estimate for the distance of groups made by homographies
 initial_speed_x = 10.0;
 initial_speed_y = 0;
 dx = 10; dy = 50;
+g_dx = 0.05; g_dy = 0.02;
 Alpha = [1.0 1.0]; % weight of the appearance constraint
 Zeta = [1.0 1.0]; % weight of the motion constraint
 update_homo = true;
-% TODO per camera sigmas
 a_sigma{1} = [1 ^ 2 0.0; 0.0 1 ^ 2]; a_sigma{2} = [1 ^ 2 0.0; 0.0 1 ^ 2];
 m_sigma{1} = [0.5 0; 0 0.5]; m_sigma{2} = [0.5 0; 0 0.5];
 G_sigma =  2 * (2 ^ 2);
@@ -52,7 +53,7 @@ candidates_frame = 2;
 debug_gnd_truth_frames = 3;
 %%=========================================================
 % Frames at which detections are available/allowed
-detection_frames = [start_frames; start_frames + 9; start_frames + 15]; % These are used to updated targets/number of targets at these frames
+detection_frames = [1; 4; 9]; % These are used to updated targets/number of targets at these frames
 %%=========================================================
 fprintf('Starting tracking loop:\n');
 for update_homo = 0:1 % DEBUG merely for debug, would never use this is "production"
@@ -73,14 +74,15 @@ for update_homo = 0:1 % DEBUG merely for debug, would never use this is "product
             images{i} = imread(cameraListImages{i}{start_frames(i)+(f)});
         end
         %---------------------------------------------------------------------------
+        % TODO Detection frames should be used here
         fprintf('\t 2.Getting targets...\n');
-        if f == 1
-            targs = cell(2,1); % TODO Actual targets from both cameras
+        if ismember(f,detection_frames)
+            targs = cell(2,1); % Targets from all cameras
             for id = 1:length(cameras)
                 targs{id} = gnd_detections{id}{start_frames(id) + f};
             end
             targs = cell2mat(targs); % For some reason this work on one computer and on the other one does not
-            % TODO If the targets are empty on the first frame, can't track
+            % NOTE If the targets are empty on the first frame, can't track
             if isempty(targs)
                 error('Cannot possibly track if there are no detections on the first given frame');
             end
@@ -91,7 +93,7 @@ for update_homo = 0:1 % DEBUG merely for debug, would never use this is "product
         n1 = size(targs_percam{1},1); n2 = size(targs_percam{2},1);
         cands = cell(N,1); cands_percam = cell(2,1); % Candidates from both cameras for each target, always empty each frame
         %---------------------------------------------------------------------------
-        % TODO Sample around the targets. We then use these candidates on the next frame
+        % Sample around the targets. We then use these candidates on the next frame
         fprintf('\t 3.Sampling candidates...\n');
         for t = 1:size(targs,1)
             t_pos = targs(t,8:9);
@@ -107,8 +109,8 @@ for update_homo = 0:1 % DEBUG merely for debug, would never use this is "product
                     cy = t_rect(2) + gridy * sampling_dy;
                     cands{t}(counter,:) = [cx cy t_rect(3:4) transpose(H(homographies{targs(t,1)}, [cx+t_rect(3)/2; cy+t_rect(4)]))];
                 elseif strcmp(sampling_plane,'ground')
-                    sampling_dx = 0.05; % TODO Bernardino proposed a way to actually get bb width from gnd plane
-                    sampling_dy = 0.02; % TODO but we would need some data we do not have :(
+                    sampling_dx = g_dx; % TODO Bernardino proposed a way to actually get bb width from gnd plane
+                    sampling_dy = g_dy; % TODO but we would need some data we do not have :(
                     %t_pos = transpose(H(homographies{targs(t,1)},[t_rect(3)/2; t_rect(4)]));
                     g_cx = t_pos(1) + gridx * sampling_dx;
                     g_cy = t_pos(2) + gridy * sampling_dy;
@@ -122,18 +124,16 @@ for update_homo = 0:1 % DEBUG merely for debug, would never use this is "product
         end
         all_candidates{f} = cands_percam;
         %---------------------------------------------------------------------------
-        % TODO check for potential new targets to add from the detections
+        % check for potential new targets to add from the detections
         fprintf('\t 4.Checking for potential new targets...\n');
-
         % Check if detections are available. If there are more detections than currently there are targets consider this
         if f ~= 1
             if size(gnd_detections{id}{start_frames(id) + f},1) > size(targs_percam{id},1)
                 fprintf('\t \t More detections than targets! \n');
             end
         end
-
         %---------------------------------------------------------------------------
-        % TODO store the ones that are ambiguous for homography correction in targs_in_overlap (i.e gating part 1)
+        % NOTE store the ones that are ambiguous for homography correction in targs_in_overlap (i.e gating part 1)
         fprintf('\t 5.Checking for targets in the overlapping regions...\n')
         targs_in_overlap = {}; motion_models_overlap = {};
         for t = 1:size(targs,1)
@@ -155,15 +155,16 @@ for update_homo = 0:1 % DEBUG merely for debug, would never use this is "product
         end
         fprintf('\t --------------------------------- \n')
         %---------------------------------------------------------------------------
-        % TODO appearance
+        % NOTE appearance
         fprintf('\t 6.Computing apperance cues...\n');
         a = cell(length(cameras),1);
         for i = 1:length(cameras)
             n = size(targs_percam{i},1);
+            % TODO implement fourier method to do this following
             [c_a, w, Z_app, y] = appearance(k,n,targs_percam{i},cands_percam{i},images{i},...
                 next_images{i},'naive',lambda,a_sigma{i},dx,dy, g_candidates, weights{i});
             a{i} = c_a;
-            % TODO Store weights which might be useful
+            % TODO Store weights and use them in a filter-like implementation
             weights{i} = w;
             %plotAppeance(c_a,i,n,k,cameraListImages,f,targs_percam,cameras,cands_percam, start_frames,cands_percam);
         end
@@ -175,7 +176,7 @@ for update_homo = 0:1 % DEBUG merely for debug, would never use this is "product
         end
         a = reshape(a,k*N,1);
         %---------------------------------------------------------------------------
-        % TODO create motion models
+        % NOTE create motion models
         if f == 1
             fprintf('\t 7.Creating motion models...\n');
             motion_models = cell(N,1);
@@ -184,7 +185,7 @@ for update_homo = 0:1 % DEBUG merely for debug, would never use this is "product
             end
         end
         %--------------------------------
-        % TODO motion
+        % NOTE motion
         fprintf('\t 8.Computing motion cues...\n');
         m = cell(length(cameras),1);
         for i = 1:length(cameras)
@@ -202,7 +203,7 @@ for update_homo = 0:1 % DEBUG merely for debug, would never use this is "product
         m = reshape(m,k*N,1);
 
         %--------------------------------
-        % TODO create groups
+        % NOTE create groups
         fprintf('\t 9.Creating groups...\n');
         if rem(f,tau) == 0
             groups = cell(2,1);
@@ -214,7 +215,7 @@ for update_homo = 0:1 % DEBUG merely for debug, would never use this is "product
             end
         end
         %--------------------------------
-        % TODO grouping
+        % NOTE grouping
         fprintf('\t 10.Computing grouping cues...\n');
         T = grouping(N,k,groups,targs,targs_percam,cands,G_sigma);
         Dinvsq = diag(sum(T,2)).^(-1/2); %row sum
@@ -223,7 +224,7 @@ for update_homo = 0:1 % DEBUG merely for debug, would never use this is "product
         %plotGrouping(T,G);
         G = zeros(N*k);
         %--------------------------------
-        % TODO out-of-bounds cue
+        % NOTE out-of-bounds cue
         b = cell(length(cameras),1);
         for i = 1:length(cameras)
             n = size(targs_percam{i},1);
@@ -233,7 +234,7 @@ for update_homo = 0:1 % DEBUG merely for debug, would never use this is "product
         end
         b = cell2mat(b);
         %---------------------------------------------------------------------------
-        % TODO join all cues and solve FW
+        % NOTE join all cues and solve FW
         fprintf('\t «« (TEMPORAL) Using FW optimization! »» \n');
         % Prepare inputs for Frank Wolfe (conditional gradient)
         [H_,F,Aeq,Beq,labels] = FW_preamble(N,k,a,m,G,b,Alpha,Zeta,n1,n2);
@@ -269,41 +270,39 @@ for update_homo = 0:1 % DEBUG merely for debug, would never use this is "product
         end
         if rem(f-1,xi) == 0 && size(targs_in_overlap,1) == length(cameras) % NOTE Only do this if there are targets from all cams
             fprintf('\t 11. Performing inter-camera disambiguation in overlap region...\n');
+            n1_o = size(targs_in_overlap{1},1);
+            n2_o = size(targs_in_overlap{2},1);
+            n_o = {n1_o, n2_o};
+            N_o = n1_o + n2_o;
+            if n1_o == n2_o
+                fprintf('\t \t Same number of targets in overlap from all cams.\n');
+            else
+                fprintf('\t \t Different number of targets in overlap from all cams.\n');
+            end
+            %---------------------------------------------------------------------------
             if strcmp(intercam_method,'lapjv')
                 fprintf('\t «« (SPATIAL) Using LAP-JV matching! »» \n');
-                % NOTE METHOD ONE OF INTER-CAMERA ASSIGNMENT
+                %---------------------------------------------------------------------------
                 % TODO Build Score matrix (how to generalize this to n cameras? NP-hard assignment problem?)
-                n_ov1 = size(targs_in_overlap{1},1);
-                n_ov2 = size(targs_in_overlap{2},1);
-                [S, A, P, V] = createScoreMatrix(f,n_ov1,n_ov2,targs_in_overlap,images,d1_metric,d256_metric, motion_models_overlap);
+                [S, A, P, V] = createScoreMatrix(f,n1_o,n2_o,targs_in_overlap,images,d1_metric,d256_metric, motion_models_overlap);
 
-                % TODO Gating (i.e gating part2)
-                for a1 = 1:n_ov1
-                    for b1 = 1:n_ov2
+                % NOTE Gating (i.e gating part2)
+                for a1 = 1:n1_o
+                    for b1 = 1:n2_o
                         if P(a1,b1) > gating_distance
                             S(a1,b1) = Inf;
                         end
                     end
                 end
-                % TODO Target Coupling (disambiguate between targets that are in the overlapping region)
+                % NOTE Target Coupling (disambiguate between targets that are in the overlapping region)
                 assignments = lapjv(S,eps); % NOTE eps can be changed to accelerate the algorithm
                 for i=1:size(S,2)
-                    valid_matchings = getValidMatchings_lapjv(i, S, score_threshold, n_ov2, n_ov1, targs_in_overlap, assignments, valid_matchings);
+                    valid_matchings = getValidMatchings_lapjv(i, S, score_threshold, n2_o, n1_o, targs_in_overlap, assignments, valid_matchings);
                 end
             elseif strcmp(intercam_method,'fw')
                 fprintf('\t «« (SPATIAL) Using FW optimization! »» \n');
-                % TODO Get all targets in overlap region
-                n1_o = size(targs_in_overlap{1},1);
-                n2_o = size(targs_in_overlap{2},1);
-                n_o = {n1_o, n2_o};
-                N_o = n1_o + n2_o;
-                if n1_o == n2_o
-                    fprintf('\t \t Same number of targets in overlap from all cams.\n');
-                else
-                    fprintf('\t \t Different number of targets in overlap from all cams.\n');
-                end
                 %---------------------------------------------------------------------------
-                % TODO Appearance and motion constraint
+                % NOTE Appearance and motion constraint
                 a_o = cell(length(cameras),1);
                 m_o = cell(length(cameras),1);
                 for i = 1:length(cameras)
@@ -324,34 +323,32 @@ for update_homo = 0:1 % DEBUG merely for debug, would never use this is "product
                 end
                 a_o = cell2mat(a_o); m_o = cell2mat(m_o);
                 %---------------------------------------------------------------------------
-                % TODO Intercam groups
-                % Create these "intercam" groups which should reflect the "same" pedestrian
-                if f == 1
-                    groups_o = cell(2,1);
-                    for i = 1:length(cameras)
-                            Y_o = pdist(targs_in_overlap{i}(:,8:9));
-
-
-
-                            Z_o = linkage(Y_o);
-                            C_o = cluster(Z_o,'cutoff',comfort_distance,'criterion','distance');
-                            groups_o{i} = C_o;
-                    end
+                % NOTE Intercam groups
+                targs_o = cell2mat(targs_in_overlap);
+                % Create these "intercam" groups which should reflect the "same" pedestrian /encourage different cams)
+                if rem(f,tau) == 0 % TODO this should not really be tau right?
+                    Y_o = pdist(targs_o(:,8:9));
+                    Z_o = linkage(Y_o,'single'); % Use euclidean distances to do hierarchical clustering (single is default)
+                    C_o = cluster(Z_o,'cutoff',homography_group_distance,'criterion','distance');
+                    groups_o = C_o;
+                    figure; dendrogram(Z_o);
                 end
                 %--------------------------------
-                % TODO grouping
-
-                % Grouping cue
-                G_o = zeros(N_o*2,N_o*2);
+                % NOTE grouping
+                T_o = h_grouping(N_o,targs_o,targs_in_overlap,groups_o);
+                Dinvsq_o = diag(sum(T_o,2)).^(-1/2); %row sum
+                Dinvsq_o(~isfinite(Dinvsq_o)) = 0; %Remove infinites from Dsinvsq, Ds.^(-1/2) is only in the diagonal
+                G_o = Dinvsq_o*T_o*Dinvsq_o; %TODO Due to its structure it cant be Normalized Laplacian matrix so G is convex
+                %G_o = zeros(N_o*2,N_o*2);
                 %---------------------------------------------------------------------------
-                % TODO Solve the optimization problem
-                b_o = zeros(length(a_o),1);
+                % NOTE Solve the optimization problem
+                b_o = zeros(length(a_o),1); % NOTE This is unecessary in the spatial domain
                 [H_o,F_o,Aeq_o,Beq_o,labels_o] = FW_preamble(N_o,2,a_o,m_o,G_o,b_o,Alpha,Zeta,n1_o,n2_o);
                 % Solve the problem using Frank Wolfe
                 [minx_o,minf_o,x_t_o,f_t_o,t1_end_o] = FW_crowd_wrapper(H_o,F_o,Aeq_o,Beq_o,labels_o,FW_max_iterations,FW_duality_gap,FW_eps);
 
                 opt_results_o = reshape(minx_o,2,[]);
-                % TODO fix this, should work for multiple cameras
+                % NOTE fix this, should work for multiple cameras
                 opt_results_percam_o{1} = opt_results_o(:,1:n1_o);
                 opt_results_percam_o{2} = opt_results_o(:,n1_o+1:end);
 
@@ -385,16 +382,15 @@ for update_homo = 0:1 % DEBUG merely for debug, would never use this is "product
             adjusted_positions{2}{end+1} = cam2_dets_gnd;
         end
         %---------------------------------------------------------------------------
-        % TODO update motion models using old targets and predicted targets
+        % NOTE update motion models using old targets and predicted targets
         fprintf('\t Updating motion models...\n');
         for i=1:N
             for j=1:k
                 if optimization_results(j,i) == 1
                     % Update Position
                     motion_models{i}(1:2) = cands{i}(j,5:6);
-                    % Update velocity
-                    dt = 1.0/fps;
-                    motion_models{i}(3:4) = (cands{i}(j,5:6) - targs(i,8:9))/dt;
+                    % Update Speed
+                    motion_models{i}(3:4) = (cands{i}(j,5:6) - targs(i,8:9))/dt; % dt is 1/fps
                 end
             end
         end
@@ -402,6 +398,7 @@ for update_homo = 0:1 % DEBUG merely for debug, would never use this is "product
         fprintf('\t Saving results, using results as next targets...\n');
         % TODO Store target <-> candidate pairs so we can plot them later
         % TODO "clear" targets, use the predicted ones as new targets
+        % TODO get size of tracklets to initialize it
         for i=1:N
             for j=1:k
                 if optimization_results(j,i) == 1
@@ -412,112 +409,12 @@ for update_homo = 0:1 % DEBUG merely for debug, would never use this is "product
         end
     end
     if update_homo == false
-        % TODO Store these tracklets
+        % NOTE Store these tracklets purely for debug
         nohomocorrec_tracklets = tracklets;
     end
 end
-%#############################################################################################################################
 
-% TODO Plot final tracks for debug mostly
-%openfig(floor_image); hold on;
-figure; hold on;
-
-% TODO Plot ground truths
-colors = {'Orange','Purple','Grey'};
-colors_adjusted = {'Red','Blue','Black'};
-colors_nohomo = {'Salmon','Cyan'};
-gndtruth = cell(2,1);
-for i = 1:length(cameras)
-    % DEBUG Define a specific frame here for debug to see all candidates of that specific frame
-    if show_candidates == true
-        if ~isempty(all_candidates{candidates_frame})
-            for j=1:size(all_candidates{candidates_frame}{i},2)
-                scatter(all_candidates{candidates_frame}{i}{j}(:,5),all_candidates{candidates_frame}{i}{j}(:,6),14,'d','MarkerFaceColor',rgb('White'),'MarkerEdgeColor',rgb(colors_adjusted{i}))
-            end
-        end
-    end
-    if draw_regions == true
-        drawPoly(ground_plane_regions{i},colors{i},0.5,false); % Draw regions
-        if ~isempty(ground_plane_regions_adjusted{i})
-            drawPoly(ground_plane_regions_adjusted{i},colors_adjusted{i},0.5,false);
-        end
-    end
-end
-if draw_regions == true
-    %drawPoly(overlap,colors{3},1.0,false);
-    if ~isempty(ground_plane_regions_adjusted{1}) &&  ~isempty(ground_plane_regions_adjusted{2})
-        drawPoly(overlap_adjusted, colors_adjusted{3},1.0,false);
-    end
-end
-% TODO Plot no homography correction
-nohomocorrec_plots = cell(2,1);
-for s = 1:length(nohomocorrec_tracklets)
-    if nohomocorrec_tracklets{s}(1,1) == 1
-        %plot(nohomocorrec_tracklets{s}(:,8),nohomocorrec_tracklets{s}(:,9),'s-','Color',rgb('Gold'));
-        nohomocorrec_plots{1}{end+1} = nohomocorrec_tracklets{s};
-    else
-        %plot(nohomocorrec_tracklets{s}(:,8),nohomocorrec_tracklets{s}(:,9),'s-','Color',rgb('Silver'));
-        nohomocorrec_plots{2}{end+1} = nohomocorrec_tracklets{s};
-    end
-    if s <= length(nohomocorrec_tracklets) - 2 && nohomocorrec_tracklets{s}(1,2) == nohomocorrec_tracklets{s+2}(1,2) + 70
-        plot([nohomocorrec_tracklets{s}(2,8) ; nohomocorrec_tracklets{s+2}(2,8)],[nohomocorrec_tracklets{s}(2,9) ; nohomocorrec_tracklets{s+2}(2,9)],'s--','Color',rgb('Gray'));
-    end
-end
-nohomocorrec_plots{1} = cell2mat(transpose(nohomocorrec_plots{1}));
-nohomocorrec_plots{2} = cell2mat(transpose(nohomocorrec_plots{2}));
-% TODO Plot WITH homography correction
-plots = cell(2,1);
-for s = 1:length(tracklets)
-    if tracklets{s}(1,1) == 1
-        %plot(tracklets{s}(:,8),tracklets{s}(:,9),'s-','Color',rgb('Red'));
-        plots{1}{end+1} = tracklets{s};
-    else
-        %plot(tracklets{s}(:,8),tracklets{s}(:,9),'s-','Color',rgb('Blue'));
-        plots{2}{end+1} = tracklets{s};
-    end
-    if s <= length(tracklets) - 2 && tracklets{s}(1,2) == tracklets{s+2}(1,2) + 70
-        plot([tracklets{s}(2,8) ; tracklets{s+2}(2,8)],[tracklets{s}(2,9) ; tracklets{s+2}(2,9)],'k--');
-    end
-end
-plots{1} = cell2mat(transpose(plots{1}));
-plots{2} = cell2mat(transpose(plots{2}));
-
-for i = 1:length(cameras)
-    nohomocorrec_plots{i} = accumarray(nohomocorrec_plots{i}(:,3),(1:size(nohomocorrec_plots{i},1)).',[],@(x){nohomocorrec_plots{i}(x,:)},{});
-    plots{i} = accumarray(plots{i}(:,3),(1:size(plots{i},1)).',[],@(x){plots{i}(x,:)},{});
-    for s = 1:size(nohomocorrec_plots{i},1)
-        plot(nohomocorrec_plots{i}{s}(:,8),nohomocorrec_plots{i}{s}(:,9),'o--','Color',rgb(colors_nohomo{i}));
-        plot(plots{i}{s}(:,8),plots{i}{s}(:,9),'s-','Color',rgb(colors_adjusted{i}));
-    end
-    %for matches = 1:size(valid_matchings{1},2)
-    %    plot([valid_matchings{1}{matches}(:,8); valid_matchings{2}{matches}(:,8)],[valid_matchings{1}{matches}(:,9); valid_matchings{2}{matches}(:,9)],'k');
-    %end
-end
-
-if show_ground_truth == true
-    for f = 1:(num_frames - 1)
-        if f == debug_gnd_truth_frames + 1 % DEBUG Always draw one more for debug reasons
-            break;
-        end
-        truth1 = gnd_detections{1}{start_frames(1) + f};
-        truth2 = gnd_detections{2}{start_frames(2) + f};
-        scatter(truth1(:,8),truth1(:,9),'MarkerFaceColor',rgb('Orange'),'MarkerEdgeColor',rgb('Orange'));
-        scatter(truth2(:,8),truth2(:,9),'MarkerFaceColor',rgb('Purple'),'MarkerEdgeColor',rgb('Purple'));
-    end
-end
-if draw_regions == true
-    legend('Original cam 40 region', 'Corrected cam 40 region', 'Original cam 19 region', 'Corrected cam 19 region', 'Overlap region', ...
-    'Pedestrian 1 -- Cam 40','Corrected Pedestrian 1 -- Cam 40', ...
-    'Pedestrian 2 -- Cam 40','Corrected Pedestrian 2 -- Cam 40', ...
-    'Pedestrian 1 -- Cam 19','Corrected Pedestrian 1 -- Cam 19',...
-    'Pedestrian 2 -- Cam 19','Corrected Pedestrian 2 -- Cam 19',...
-    'Initial detections Cam 40','Initial detections Cam 19');
-else
-    legend('Ped 1 Cam 40','Ped 1 Cam 40', ...
-    'Ped 2 Cam 40','Ped 2 Cam 40', ...
-    'Ped 1 Cam 19','Ped 1 Cam 19',...
-    'Ped 2 Cam 19','Ped 2 Cam 19',...
-    'Initial detections Cam 40','Initial detections Cam 19');
-end
-xlabel('x(m)') % x-axis label
-ylabel('y(m)') % y-axis label
+% NOTE Plot final tracks for debug mostly
+plot_output(all_candidates, ground_plane_regions, ground_plane_regions_adjusted, cameras, show_candidates, ...
+show_ground_truth, candidates_frame, draw_regions, tracklets, nohomocorrec_tracklets, gnd_detections, overlap_adjusted, ...
+num_frames,debug_gnd_truth_frames,start_frames);

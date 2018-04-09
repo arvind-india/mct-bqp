@@ -3,10 +3,10 @@ global cameras
 cameras = {19, 40};
 
 global hdaRootDirectory
-hdaRootDirectory = '~/HDA_Dataset_V1.3';
+hdaRootDirectory = '/media/pedro/mct1/HDA_Dataset_V1.3';
 
 global image_directories
-image_directories = {'~/HDA_Dataset_V1.3/images/cam19/', '~/HDA_Dataset_V1.3/images/cam40/'};
+image_directories = {'/media/pedro/mct1/HDA_Dataset_V1.3/images/cam19/', '/media/pedro/mct1/HDA_Dataset_V1.3/images/cam40/'};
 
 global crops_directories
 crops_directories = {'~/mct-bqp/hda_data/filtered_crops/'};
@@ -15,7 +15,7 @@ global homography_directory
 homography_directory = '~/mct-bqp/hda_data/homographies';
 
 global fps
-fps = 5;
+fps = 5.0;
 
 global dt
 dt = 1/fps;

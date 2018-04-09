@@ -3,10 +3,10 @@ global cameras
 cameras = {57, 58};
 
 global hdaRootDirectory
-hdaRootDirectory = '~/HDA_Dataset_V1.3';
+hdaRootDirectory = '/media/pedro/mct1/HDA_Dataset_V1.3';
 
 global image_directories
-image_directories = {'~/HDA_Dataset_V1.3/images/cam57/', '~/HDA_Dataset_V1.3/images/cam58/'};
+image_directories = {'/media/pedro/mct1/HDA_Dataset_V1.3/images/cam57/', '/media/pedro/mct1/HDA_Dataset_V1.3/images/cam58/'};
 
 global crops_directories
 crops_directories = {'~/mct-bqp/hda_data/filtered_crops/'};

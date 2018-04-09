@@ -16,11 +16,11 @@ function T = grouping(N,k,groups,targs,targs_percam,cands, G_sigma)
                         else
                             c1 = cands{i1}(j1,5:6); % Candidate belonging to t1
                             c2 = cands{i2}(j2,5:6); % Candidate belonging to t2
-                            dist = pdist([c1;c2],'minkowski',2);
+                            dist = pdist([c1;c2],'minkowski',2); % Any minkowski distance (here its euclidean)
                             % TODO if the targets are in the same group
                             if groups{cam1}(t1(3)) == groups{cam1}(t2(3))
                                 % TODO within group distance
-                                e12 = pdist([t1(8:9);t2(8:9)],'minkowski',2);
+                                e12 = pdist([t1(8:9);t2(8:9)],'minkowski',2); % Any minkowski distance (here its euclidean)
                             % TODO else
                             else
                                 e12 = 0;

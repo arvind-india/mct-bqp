@@ -7,8 +7,7 @@
 
 global hdaRootDirectory
 
-hdaRootDirectory ='/home/pedro/HDA_Dataset_V1.3';
-addpath(genpath(['/home/pedro/hda_code']));
+hdaRootDirectory ='/media/pedro/mct1/HDA_Dataset_V1.3';
 
 dbBrowser(hdaRootDirectory)
 
@@ -16,11 +15,7 @@ dbBrowser(hdaRootDirectory)
 % and http://www.vision.caltech.edu/Image_Datasets/CaltechPedestrians/files/code3.0.0.zip (Doll�r Detection Code)
 %
 % Improved and partially commented by:
-% - F�bio Reis 
-% - Dario Figueira 
+% - F�bio Reis
+% - Dario Figueira
 % - Matteo Taiana
-
-
-
-
-
+% - Pedro Abreu
