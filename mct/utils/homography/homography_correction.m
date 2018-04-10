@@ -1,4 +1,4 @@
-function [H1, H2, cam1_dets_gnd, cam2_dets_gnd, cam1_region_gnd, cam2_region_gnd, n_c1, n_c2] = homography_correction(matchings, inplanes, ground_plane_regions, homog_solver, N, rho_r, rho_d, debug)
+function [Hs, cam_dets_gnd, cam_region_gnd, n_c] = homography_correction(matchings, inplanes, ground_plane_regions, homog_solver, N, rho_r, rho_d, debug)
     %-----------------------------PREAMBLE---------------------------------
     cam1_region_cam = inplanes{1};
     cam2_region_cam = inplanes{2};
@@ -75,8 +75,7 @@ function [H1, H2, cam1_dets_gnd, cam2_dets_gnd, cam1_region_gnd, cam2_region_gnd
         region2_shift = region2_shift / i2;
         region_shifts(reps) = (region1_shift + region2_shift)/2;
         region1_shift = 0; region2_shift = 0;
-        fprintf(['\t\t Iteration ', num2str(reps),'. Distance between ground plane detections: ', ...
-          num2str(distances(reps)), '\n']);
+        fprintf(['\t\t' num2str(distances(reps)) ' -- Iter ', num2str(reps),'| dist between gnd plane detections: \n']);
         if reps ~= 1
             dd(reps-1) = distances(reps-1) - distances(reps);
         end
@@ -179,6 +178,13 @@ function [H1, H2, cam1_dets_gnd, cam2_dets_gnd, cam1_region_gnd, cam2_region_gnd
             end
         end
     end
+    % NOTE Put the output in cell_arrays
+    Hs = cell(2,1); cam_dets_gnd = cell(2,1); cam_region_gnd = cell(2,1); n_c = cell(2,1);
+    Hs{1} = H1; Hs{2} = H2;
+    cam_dets_gnd{1} = cam1_dets_gnd; cam_dets_gnd{2} = cam2_dets_gnd;
+    cam_region_gnd{1} = cam1_region_gnd; cam_region_gnd{2} = cam2_region_gnd;
+    n_c{1} = n_c1; n_c{2} = n_c2;
+
 end
 
 function gpreg = reg2gnd(in_reg, h)

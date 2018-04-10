@@ -27,12 +27,14 @@ function plot_output(all_candidates, ground_plane_regions, ground_plane_regions_
     end
 
     % TODO Plot WITHOUT homography correction
-    nohomocorrec_plots = cell(2,1);
-    for s = 1:length(nohomocorrec_tracklets)
-        camera = nohomocorrec_tracklets{s}(1,1);
-        nohomocorrec_plots{camera}{end+1} = nohomocorrec_tracklets{s};
-        if s <= length(nohomocorrec_tracklets) - 2 && nohomocorrec_tracklets{s}(1,2) == nohomocorrec_tracklets{s+2}(1,2) + 70
-            plot([nohomocorrec_tracklets{s}(2,8) ; nohomocorrec_tracklets{s+2}(2,8)],[nohomocorrec_tracklets{s}(2,9) ; nohomocorrec_tracklets{s+2}(2,9)],'s--','Color',rgb('Gray'));
+    if ~isempty(nohomocorrec_tracklets)
+        nohomocorrec_plots = cell(2,1);
+        for s = 1:length(nohomocorrec_tracklets)
+            camera = nohomocorrec_tracklets{s}(1,1);
+            nohomocorrec_plots{camera}{end+1} = nohomocorrec_tracklets{s};
+            if s <= length(nohomocorrec_tracklets) - 2 && nohomocorrec_tracklets{s}(1,2) == nohomocorrec_tracklets{s+2}(1,2) + 70
+                plot([nohomocorrec_tracklets{s}(2,8) ; nohomocorrec_tracklets{s+2}(2,8)],[nohomocorrec_tracklets{s}(2,9) ; nohomocorrec_tracklets{s+2}(2,9)],'s--','Color',rgb('Gray'));
+            end
         end
     end
 
@@ -47,15 +49,19 @@ function plot_output(all_candidates, ground_plane_regions, ground_plane_regions_
     end
 
     for i = 1:length(cameras)
-        nohomocorrec_plots{i} = cell2mat(transpose(nohomocorrec_plots{i}));
+        if ~isempty(nohomocorrec_tracklets)
+            nohomocorrec_plots{i} = cell2mat(transpose(nohomocorrec_plots{i}));
+            nohomocorrec_plots{i} = accumarray(nohomocorrec_plots{i}(:,3),(1:size(nohomocorrec_plots{i},1)).',[],@(x){nohomocorrec_plots{i}(x,:)},{});
+        end
         plots{i} = cell2mat(transpose(plots{i}));
-        nohomocorrec_plots{i} = accumarray(nohomocorrec_plots{i}(:,3),(1:size(nohomocorrec_plots{i},1)).',[],@(x){nohomocorrec_plots{i}(x,:)},{});
         plots{i} = accumarray(plots{i}(:,3),(1:size(plots{i},1)).',[],@(x){plots{i}(x,:)},{});
     end
 
     for i = 1:length(cameras)
-        for s = 1:size(nohomocorrec_plots{i},1)
-            plot(nohomocorrec_plots{i}{s}(:,8),nohomocorrec_plots{i}{s}(:,9),'o--','Color',rgb(colors_nohomo{i}));
+        for s = 1:size(plots{i},1)
+            if ~isempty(nohomocorrec_tracklets)
+                plot(nohomocorrec_plots{i}{s}(:,8),nohomocorrec_plots{i}{s}(:,9),'o--','Color',rgb(colors_nohomo{i}));
+            end
             plot(plots{i}{s}(:,8),plots{i}{s}(:,9),'s-','Color',rgb(colors_adjusted{i}));
         end
         %for matches = 1:size(valid_matchings{1},2)

@@ -1,4 +1,4 @@
-function T_o = h_grouping(N_o,targs_o,targs_in_overlap,groups_o)
+function T_o = h_grouping(N_o,targs_o,targs_in_overlap,groups_o,G_sigma)
     T_o = zeros(N_o*2,N_o*2);
     for i1 = 1:N_o
         for i2 = 1:N_o

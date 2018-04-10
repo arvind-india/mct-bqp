@@ -11,52 +11,70 @@ end
 ground_plane_regions = computeGroundPlaneRegions(inplanes, homographies, length(cameras), 'hda');
 [overlap, ~, ~] = computeOverlap(ground_plane_regions);
 %%=========================================================
-FW_max_iterations = 5000;  % max number of iteration, I found out the opts.TOL (tolerance?) is more important in the convergence in my problem
-FW_duality_gap = 2; % This sets the duality gap and you can change it if you want to change the tolerance for FW convergence
-FW_eps = 1e-12; % (eps in matlab = 1e-16) not sure why this is needed
 num_frames = 7; % Number of frames
 start = 6811;
 start_frames = [start + offset_frames start]; % Frames to start collecting images
 g_candidates = 9; % basis for the number of candidates
 k = g_candidates ^ 2; % Candidates per target
-tau = 1; psi = 8; xi = 8;
+tau = 1; h_tau = 1; psi = 8; xi = 8;
 N = 0; % Number of targets in all cameras
 penalize_val = 1;
 reward_val = -1;
-lambda = 0.5; % variable for the appearance cues
+
 gating_distance = 6.0; % This does actually correspond to 6 meters
 score_threshold = 0.4;
-comfort_distance = 1.5; % Anyone closer than this meters is in talking range?
-homography_group_distance = 0.5; % Estimate for the distance of groups made by homographies
+
 initial_speed_x = 10.0;
 initial_speed_y = 0;
-dx = 10; dy = 50;
-g_dx = 0.05; g_dy = 0.02;
+sampling_plane = 'ground'; % NOTE Must be either 'camera' or 'ground'
+dx = 10; dy = 50; % Sampling in the camera space
+g_dx = 0.05; g_dy = 0.02; % Sampling in the
+
+clustering = 'single';
+comfort_distance = 1.5; % Anyone closer than this meters is in talking range?
+FW_max_iterations = 5000;  % max number of iteration, I found out the opts.TOL (tolerance?) is more important in the convergence in my problem
+FW_duality_gap = 2; % This sets the duality gap and you can change it if you want to change the tolerance for FW convergence
+FW_eps = 1e-12; % (eps in matlab = 1e-16) not sure why this is needed
+lambda = 0.5; % variable for the appearance cues
 Alpha = [1.0 1.0]; % weight of the appearance constraint
 Zeta = [1.0 1.0]; % weight of the motion constraint
-update_homo = true;
 a_sigma{1} = [1 ^ 2 0.0; 0.0 1 ^ 2]; a_sigma{2} = [1 ^ 2 0.0; 0.0 1 ^ 2];
 m_sigma{1} = [0.5 0; 0 0.5]; m_sigma{2} = [0.5 0; 0 0.5];
 G_sigma =  2 * (2 ^ 2);
+
+h_group_distance = 0.5; % Estimate for the distance of groups made by homographies
+h_FW_max_iterations = 5000;
+h_FW_duality_gap = 2;
+h_FW_eps = 1e-12;
+h_lambda = 0.5;
+h_Alpha = [1.0 1.0];
+h_Zeta = [1.0 1.0];
+h_a_sigma{1} = [1 ^ 2 0.0; 0.0 1 ^ 2]; h_a_sigma{2} = [1 ^ 2 0.0; 0.0 1 ^ 2];
+h_m_sigma{1} = [0.5 0; 0 0.5]; h_m_sigma{2} = [0.5 0; 0 0.5];
+h_G_sigma =  2 * (2 ^ 2);
+
+appearance_method = 'naive'; % NOTE Must be either 'naive' or 'fourier'
+intercam_method = 'frank-wolfe'; % NOTE Must be either 'lapjv' or 'frank-wolfe'
 homog_solver = 'svd'; % Method to compute homographies, NOTE must be either 'svd' or 'ransac'
-weights = cell(2,1);
+filter = 'none'; % NOTE must be either 'recursive' or 'non-recursive' or 'none' (kalman in the future?)
+weights = cell(2,1); weights_o = cell(2,1);
 %%=========================================================
 debug_test_frames = 1; % DEBUG test these frames
+homo_toggle = 1; % DEBUG Set this to 1 if you wish to only run with homography correction!
 show_ground_truth = true;
 show_candidates = true;
 show_predicted_bbs = false;
 draw_regions = true;
-sampling_plane = 'ground'; % NOTE Must be either 'camera' or 'ground'
 homocorrec_debug = 'no_debug';
-intercam_method = 'fw';% NOTE Use lapjv or fw
 candidates_frame = 2;
 debug_gnd_truth_frames = 3;
+nohomocorrec_tracklets = {};
 %%=========================================================
 % Frames at which detections are available/allowed
 detection_frames = [1; 4; 9]; % These are used to updated targets/number of targets at these frames
 %%=========================================================
 fprintf('Starting tracking loop:\n');
-for update_homo = 0:1 % DEBUG merely for debug, would never use this is "production"
+for update_homo = homo_toggle:1 % DEBUG merely for debug, would never use this is "production"
     fprintf(['Updating homography set to ' num2str(update_homo) '\n']);
     all_candidates = cell(num_frames,1); % Store all candidates (in gnd plane)
     ground_plane_regions_adjusted = cell(2,1);
@@ -70,12 +88,16 @@ for update_homo = 0:1 % DEBUG merely for debug, would never use this is "product
         fprintf(['  Frame ' num2str(f) ':\n \t 1.Getting images...\n']);
         next_images = cell(length(cameras),1); images = cell(length(cameras),1);
         for i = 1:length(cameras)
-            next_images{i} = imread(cameraListImages{i}{start_frames(i)+(f+1)});
-            images{i} = imread(cameraListImages{i}{start_frames(i)+(f)});
+            try
+                next_images{i} = imread(cameraListImages{i}{start_frames(i)+(f+1)});
+                images{i} = imread(cameraListImages{i}{start_frames(i)+(f)});
+            catch ME
+                fprintf('Could not find dataset. If stored in a HDD, make sure it is mounted.\n');
+            end
         end
         %---------------------------------------------------------------------------
         % TODO Detection frames should be used here
-        fprintf('\t 2.Getting targets...\n');
+        fprintf('\t 2.Getting targets from frames in detection frames...\n');
         if ismember(f,detection_frames)
             targs = cell(2,1); % Targets from all cameras
             for id = 1:length(cameras)
@@ -156,17 +178,20 @@ for update_homo = 0:1 % DEBUG merely for debug, would never use this is "product
         fprintf('\t --------------------------------- \n')
         %---------------------------------------------------------------------------
         % NOTE appearance
-        fprintf('\t 6.Computing apperance cues...\n');
+        fprintf('\t 6.Computing appearance cues...\n');
         a = cell(length(cameras),1);
         for i = 1:length(cameras)
             n = size(targs_percam{i},1);
             % TODO implement fourier method to do this following
             [c_a, w, Z_app, y] = appearance(k,n,targs_percam{i},cands_percam{i},images{i},...
-                next_images{i},'naive',lambda,a_sigma{i},dx,dy, g_candidates, weights{i});
+                next_images{i},appearance_method,lambda,a_sigma{i},dx,dy, g_candidates, weights{i},filter);
             a{i} = c_a;
+            %plotAppearanceBBs(i,n,k,cameraListImages,f,targs_percam,cameras,cands_percam, start_frames);
+            %plotAppearanceValues(i,n,k,c_a,cands_homo_percam,cameras);
+            %plotAppearanceWeighs(i,n,k,w,weights{i}); % w are the new weights and weights{i} are the previous ones
+
             % TODO Store weights and use them in a filter-like implementation
             weights{i} = w;
-            %plotAppeance(c_a,i,n,k,cameraListImages,f,targs_percam,cameras,cands_percam, start_frames,cands_percam);
         end
         a = cell2mat(a);
         % Normalize for each candidate
@@ -177,7 +202,7 @@ for update_homo = 0:1 % DEBUG merely for debug, would never use this is "product
         a = reshape(a,k*N,1);
         %---------------------------------------------------------------------------
         % NOTE create motion models
-        if f == 1
+        if ismember(f,detection_frames)
             fprintf('\t 7.Creating motion models...\n');
             motion_models = cell(N,1);
             for t = 1:size(targs,1)
@@ -209,7 +234,7 @@ for update_homo = 0:1 % DEBUG merely for debug, would never use this is "product
             groups = cell(2,1);
             for i = 1:length(cameras)
                     Y = pdist(targs_percam{i}(:,8:9));
-                    Z = linkage(Y);
+                    Z = linkage(Y,clustering);
                     C = cluster(Z,'cutoff',comfort_distance,'criterion','distance');
                     groups{i} = C;
             end
@@ -299,7 +324,7 @@ for update_homo = 0:1 % DEBUG merely for debug, would never use this is "product
                 for i=1:size(S,2)
                     valid_matchings = getValidMatchings_lapjv(i, S, score_threshold, n2_o, n1_o, targs_in_overlap, assignments, valid_matchings);
                 end
-            elseif strcmp(intercam_method,'fw')
+            elseif strcmp(intercam_method,'frank-wolfe')
                 fprintf('\t «« (SPATIAL) Using FW optimization! »» \n');
                 %---------------------------------------------------------------------------
                 % NOTE Appearance and motion constraint
@@ -315,10 +340,10 @@ for update_homo = 0:1 % DEBUG merely for debug, would never use this is "product
                     end
 
                     [c_a_o, w_o, Z_o, y_o] = appearance(n_o{o_c},n_o{i},targs_o,cands_o,images{i},...
-                        images{o_c},'naive',lambda,a_sigma{i},dx,dy, g_candidates, weights{i});
+                        images{o_c},appearance_method,h_lambda,h_a_sigma{i},dx,dy,g_candidates, weights_o{i},filter);
                     a_o{i} = c_a_o;
-                    weights{i} = w_o; % TODO Store weights which might be useful
-                    c_m_o = motion(n_o{i},n_o{o_c},motion_models,cands_o,fps,m_sigma{i});
+                    weights_o{i} = w_o; % TODO Store weights which might be useful
+                    c_m_o = motion(n_o{i},n_o{o_c},motion_models,cands_o,fps,h_m_sigma{i});
                     m_o{i} = c_m_o;
                 end
                 a_o = cell2mat(a_o); m_o = cell2mat(m_o);
@@ -326,16 +351,16 @@ for update_homo = 0:1 % DEBUG merely for debug, would never use this is "product
                 % NOTE Intercam groups
                 targs_o = cell2mat(targs_in_overlap);
                 % Create these "intercam" groups which should reflect the "same" pedestrian /encourage different cams)
-                if rem(f,tau) == 0 % TODO this should not really be tau right?
+                if rem(f,h_tau) == 0
                     Y_o = pdist(targs_o(:,8:9));
-                    Z_o = linkage(Y_o,'single'); % Use euclidean distances to do hierarchical clustering (single is default)
-                    C_o = cluster(Z_o,'cutoff',homography_group_distance,'criterion','distance');
+                    Z_o = linkage(Y_o,clustering); % Use euclidean distances to do hierarchical clustering (single is default)
+                    C_o = cluster(Z_o,'cutoff',h_group_distance,'criterion','distance');
                     groups_o = C_o;
                     figure; dendrogram(Z_o);
                 end
                 %--------------------------------
                 % NOTE grouping
-                T_o = h_grouping(N_o,targs_o,targs_in_overlap,groups_o);
+                T_o = h_grouping(N_o,targs_o,targs_in_overlap,groups_o,h_G_sigma);
                 Dinvsq_o = diag(sum(T_o,2)).^(-1/2); %row sum
                 Dinvsq_o(~isfinite(Dinvsq_o)) = 0; %Remove infinites from Dsinvsq, Ds.^(-1/2) is only in the diagonal
                 G_o = Dinvsq_o*T_o*Dinvsq_o; %TODO Due to its structure it cant be Normalized Laplacian matrix so G is convex
@@ -343,12 +368,12 @@ for update_homo = 0:1 % DEBUG merely for debug, would never use this is "product
                 %---------------------------------------------------------------------------
                 % NOTE Solve the optimization problem
                 b_o = zeros(length(a_o),1); % NOTE This is unecessary in the spatial domain
-                [H_o,F_o,Aeq_o,Beq_o,labels_o] = FW_preamble(N_o,2,a_o,m_o,G_o,b_o,Alpha,Zeta,n1_o,n2_o);
+                [H_o,F_o,Aeq_o,Beq_o,labels_o] = FW_preamble(N_o,2,a_o,m_o,G_o,b_o,h_Alpha,h_Zeta,n1_o,n2_o);
                 % Solve the problem using Frank Wolfe
-                [minx_o,minf_o,x_t_o,f_t_o,t1_end_o] = FW_crowd_wrapper(H_o,F_o,Aeq_o,Beq_o,labels_o,FW_max_iterations,FW_duality_gap,FW_eps);
+                [minx_o,minf_o,x_t_o,f_t_o,t1_end_o] = FW_crowd_wrapper(H_o,F_o,Aeq_o,Beq_o,labels_o,h_FW_max_iterations,h_FW_duality_gap,h_FW_eps);
 
                 opt_results_o = reshape(minx_o,2,[]);
-                % NOTE fix this, should work for multiple cameras
+                % TODO fix this, should work for multiple cameras
                 opt_results_percam_o{1} = opt_results_o(:,1:n1_o);
                 opt_results_percam_o{2} = opt_results_o(:,n1_o+1:end);
 
@@ -359,7 +384,7 @@ for update_homo = 0:1 % DEBUG merely for debug, would never use this is "product
         end
         %---------------------------------------------------------------------------
         % NOTE homography Correction can be done separately, independently of how the target coupling is solved
-        % TODO correct homographies and ALL detections using these homographies
+        % Correct homographies and ALL detections using these homographies
         if rem(f-1,psi) == 0 && ~isempty(valid_matchings{1}) && ~isempty(valid_matchings{2}) && update_homo
             v_matchings = cell(2,1);
             for i=1:length(cameras)
@@ -369,17 +394,17 @@ for update_homo = 0:1 % DEBUG merely for debug, would never use this is "product
             end
             fprintf('\t\t Correcting homographies...\n');
             [rho_r, rho_d, best_N] = determineRho(v_matchings, inplanes, ground_plane_regions, homog_solver); % Determines good rho values for convergence
-            [H1, H2, cam1_dets_gnd, cam2_dets_gnd, cam1_region_gnd, cam2_region_gnd, n_c1, n_c2] = homography_correction(v_matchings, inplanes, ...
+            [Hs, cam_dets_gnd, cam_region_gnd, n_c] = homography_correction(v_matchings, inplanes, ...
             ground_plane_regions, homog_solver, best_N, rho_r, rho_d, homocorrec_debug);
-            homographies{1} = H1; homographies{2} = H2;
-            invhomographies{1} = inv(homographies{1});
-            invhomographies{2} = inv(homographies{2});
-            % Update existing camera regions and positions with the new adjusted ones
-            ground_plane_regions_adjusted{1} = cam1_region_gnd;
-            ground_plane_regions_adjusted{2} = cam2_region_gnd;
+            homographies = Hs;
+            for i=1:length(cameras)
+                invhomographies{i} = inv(homographies{i});
+                % Update existing camera regions and positions with the new adjusted ones
+                ground_plane_regions_adjusted{i} = cam_region_gnd{i};
+                % TODO compute overlap inside the homography_correction func
+                adjusted_positions{i}{end+1} = cam_dets_gnd{i};
+            end
             [overlap_adjusted, ~, ~] = computeOverlap(ground_plane_regions_adjusted);
-            adjusted_positions{1}{end+1} = cam1_dets_gnd;
-            adjusted_positions{2}{end+1} = cam2_dets_gnd;
         end
         %---------------------------------------------------------------------------
         % NOTE update motion models using old targets and predicted targets

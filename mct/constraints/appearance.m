@@ -1,4 +1,4 @@
-function [c_a, w, Z, y] = appearance(k,n,targs,cands,image,next_image,type,lambda,a_sigma,dx,dy,g_candidates,weights)
+function [c_a, w, Z, y] = appearance(k,n,targs,cands,image,next_image,type,lambda,a_sigma,dx,dy,g_candidates,weights,filter)
 
   feature_vector_size = 3 * 256; % 3 * Histogram size = Feature vector
   I = eye(feature_vector_size, feature_vector_size);
@@ -54,16 +54,18 @@ function [c_a, w, Z, y] = appearance(k,n,targs,cands,image,next_image,type,lambd
         % w = inv(Z' * Z + lambda*I) * (Z' * y);
         w_i = (Z' * Z + lambda*I) \ (Z' * y);
     end
-    % According to Afshin this weight is negative
+    % According to Afshin these weights must be negative
     for j=1:k
       if y(j) == 0
           c_a(j,i) = 0;
       else
-          if ~isempty(weights)
+          if strcmp(filter,'recursive')
               % TODO integrate new and old weights
-              %c_a(j,i) = -Phi(j,:) * weights(:,i);
+              c_a(j,i) = - Phi(j,:) * (0.5 * w_i + 0.5 * weights(:,i));
+          elseif strcmp(filter,'non-recursive')
+              % TODO how to do this one?
               c_a(j,i) = -Phi(j,:) * w_i;
-          else
+          elseif strcmp(filter,'none')
               c_a(j,i) = -Phi(j,:) * w_i;
           end
       end
