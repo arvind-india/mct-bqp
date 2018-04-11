@@ -2,11 +2,12 @@
 global cameras
 cameras = {19, 40};
 
+
 global hdaRootDirectory
 hdaRootDirectory = '/media/pedro/mct1/HDA_Dataset_V1.3';
 
 global image_directories
-image_directories = {'/media/pedro/mct1/HDA_Dataset_V1.3/images/cam19/', '/media/pedro/mct1/HDA_Dataset_V1.3/images/cam40/'};
+image_directories = {strcat(hdaRootDirectory,'/images/cam19/'), strcat(hdaRootDirectory,'/images/cam40/')};
 
 global crops_directories
 crops_directories = {'~/mct-bqp/hda_data/filtered_crops/'};
@@ -105,10 +106,10 @@ global order
 order = 'cardinal';
 
 global cpu_results
-cpu_results = '/home/pedro/mct-bqp/hda_data/detections-camplane/CPU/dets_';
+cpu_results = '~/mct-bqp/hda_data/detections-camplane/CPU/dets_';
 
 global gpu_results
-gpu_results = '/home/pedro/mct-bqp/hda_data/detections-camplane/GPU/dets_';
+gpu_results = '~/mct-bqp/hda_data/detections-camplane/GPU/dets_';
 
 global use_GPU
 use_GPU = [1 1];

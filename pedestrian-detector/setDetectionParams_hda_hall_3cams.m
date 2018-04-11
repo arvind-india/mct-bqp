@@ -3,10 +3,10 @@ global cameras
 cameras = {18, 19, 40};
 
 global hdaRootDirectory
-hdaRootDirectory = '/media/pedro/mct1/HDA_Dataset_V1.3';
-
+%hdaRootDirectory = '/media/pedro/mct1/HDA_Dataset_V1.3';
+hdaRootDirectory = '~/HDA_Dataset_V1.3';
 global image_directories
-image_directories = {'/media/pedro/mct1/HDA_Dataset_V1.3/images/cam18/', '/media/pedro/mct1/HDA_Dataset_V1.3/images/cam19/', '/media/pedro/mct1/HDA_Dataset_V1.3/images/cam40/'};
+image_directories = {strcat(hdaRootDirectory,'/images/cam18/'),strcat(hdaRootDirectory,'/images/cam19/'), strcat(hdaRootDirectory,'/images/cam40/')};
 
 global crops_directories
 crops_directories = {'~/mct-bqp/hda_data/filtered_crops/'};

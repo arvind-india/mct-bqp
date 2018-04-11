@@ -1,6 +1,6 @@
 function gnd_detections = load_data(dataset, cameras)
     % load the detections file
-    gnd_detections = cell(2,1);
+    gnd_detections = cell(length(cameras),1);
 
     for id = 1:length(cameras)
         filename_g = ['/home/pedro/mct-bqp/' dataset '_data/detections-gndplane/' num2str(cameras{id}) '.txt'];

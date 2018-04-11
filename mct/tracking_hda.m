@@ -188,7 +188,7 @@ for update_homo = homo_toggle:1 % DEBUG merely for debug, would never use this i
             a{i} = c_a;
             %plotAppearanceBBs(i,n,k,cameraListImages,f,targs_percam,cameras,cands_percam, start_frames);
             %plotAppearanceValues(i,n,k,c_a,cands_homo_percam,cameras);
-            %plotAppearanceWeighs(i,n,k,w,weights{i}); % w are the new weights and weights{i} are the previous ones
+            plotAppearanceWeighs(i,n,k,w,weights{i}); % w are the new weights and weights{i} are the previous ones
 
             % TODO Store weights and use them in a filter-like implementation
             weights{i} = w;
@@ -394,14 +394,10 @@ for update_homo = homo_toggle:1 % DEBUG merely for debug, would never use this i
             end
             fprintf('\t\t Correcting homographies...\n');
             [rho_r, rho_d, best_N] = determineRho(v_matchings, inplanes, ground_plane_regions, homog_solver); % Determines good rho values for convergence
-            [Hs, cam_dets_gnd, cam_region_gnd, n_c] = homography_correction(v_matchings, inplanes, ...
-            ground_plane_regions, homog_solver, best_N, rho_r, rho_d, homocorrec_debug);
-            homographies = Hs;
+            [homographies, cam_dets_gnd, ground_plane_regions_adjusted, n_c] = homography_correction(v_matchings, inplanes, ground_plane_regions, homog_solver, best_N, rho_r, rho_d, homocorrec_debug);
+            % NOTE Changed here from previous commit to simplify
             for i=1:length(cameras)
                 invhomographies{i} = inv(homographies{i});
-                % Update existing camera regions and positions with the new adjusted ones
-                ground_plane_regions_adjusted{i} = cam_region_gnd{i};
-                % TODO compute overlap inside the homography_correction func
                 adjusted_positions{i}{end+1} = cam_dets_gnd{i};
             end
             [overlap_adjusted, ~, ~] = computeOverlap(ground_plane_regions_adjusted);
@@ -412,10 +408,8 @@ for update_homo = homo_toggle:1 % DEBUG merely for debug, would never use this i
         for i=1:N
             for j=1:k
                 if optimization_results(j,i) == 1
-                    % Update Position
-                    motion_models{i}(1:2) = cands{i}(j,5:6);
-                    % Update Speed
-                    motion_models{i}(3:4) = (cands{i}(j,5:6) - targs(i,8:9))/dt; % dt is 1/fps
+                    motion_models{i}(1:2) = cands{i}(j,5:6); % Update Position
+                    motion_models{i}(3:4) = (cands{i}(j,5:6) - targs(i,8:9))/dt; % Update Speed dt is 1/fps
                 end
             end
         end

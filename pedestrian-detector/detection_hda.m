@@ -1,17 +1,17 @@
-addpath('/home/pedro/rcnn');
+%addpath('/home/pedro/rcnn');
 set(0,'DefaultFigureVisible','on');
 % Set params of the detection
-setDetectionParams_hda_hall;
+setDetectionParams_hda_hall_3cams;
 
-cameraListImages = cell(2,1);
-inplanes = cell(2,1);
+cameraListImages = cell(length(cameras),1);
+inplanes = cell(length(cameras),1);
 for i=1:length(cameras)
     cameraListImages{i} = loadImages(cameras, image_directories{i}, durations(i), 0, 'hda');
     inplanes{i} = load(strcat(visibility_regions_directory,num2str(cameras{i}),'.mat')); inplanes{i} = inplanes{i}.t;
 end
 
 detect_mode = 'GT'; % GT, CNN, ACF
-detections = cell(2,1); detections_inclocll = cell(2,1); % NOTE We have all occluded detections included on this second variable
+detections = cell(length(cameras),1); detections_inclocll = cell(length(cameras),1); % NOTE We have all occluded detections included on this second variable
 if strcmp(detect_mode,'GT') == 1
     % TODO Get ground truth
     gt = cell(length(cameras),1);
@@ -47,9 +47,12 @@ elseif strcmp(detect_mode,'CNN') == 1
     end
     kill;
 end
-
-colors = {'Red','Blue','Black'};
-num_ped_per_frame = cell(2,1);
+if length(cameras) == 2
+    colors = {'Red','Blue','Black'};
+elseif length(cameras) == 3
+    colors = {'Red','Blue','Green','Black'};
+end
+num_ped_per_frame = cell(length(cameras),1);
 % TODO Somehow show the number of valid detections on each frame for each camera overlayed as an actual line plot
 figure; hold on;
 for c = 1:length(cameras)
@@ -63,12 +66,16 @@ end
 [homographies, invhomographies] = loadHomographies(homography_directory,'hda', cameras);
 
 ground_plane_regions = computeGroundPlaneRegions(inplanes, homographies, length(cameras), 'hda');
-openfig(floor_image); hold on;
+%openfig(floor_image); hold on;
+figure; hold on;
 for i=1:length(cameras)
     drawPoly(ground_plane_regions{i},colors{i},0.5,false); % Draw regions
 end
 [overlap, ~, ~] = computeOverlap(ground_plane_regions);
-drawPoly(overlap,colors{3},1.0,false);
+if length(cameras) == 3 % TODO Fix this. For some reason computeOverlap was giving the vertices in a wrong order
+    overlap = poly2cw(overlap);
+end
+drawPoly(overlap,colors{end},1.0,false);
 %%===============================================================
 % Convert all cam plane regions and store them if they don't exist already (this is the input to the tracker)
 for i=1:length(cameras)
@@ -83,12 +90,12 @@ for i=1:length(cameras)
             gnd_detections{i}{j}(d,3) = d;
 
             gnd_detections{i}{j}(d,8:9) = t; % x and y are now in the ground plane
-            if i == 1
-                plot(t(1),t(2),'r+');
-            end
-            if i == 2
-                plot(t(1),t(2),'b+');
-            end
+            %if i == 1
+            %    plot(t(1),t(2),'r+');
+            %end
+            %if i == 2
+            %   plot(t(1),t(2),'b+');
+            %end
             line = gnd_detections{i}{j}(d,:);
             formatSpec = '%d,%d,%d,%4.5f,%4.5f,%4.5f,%4.5f,%4.5f,%4.5f\n';
             fprintf(fileID,formatSpec,line(1),line(2),line(3),line(4),line(5),line(6),line(7),line(8),line(9));

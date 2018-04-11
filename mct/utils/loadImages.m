@@ -4,6 +4,7 @@ function cameraListImages = loadImages(cameras, image_directory, num_frames, sta
             cameraListImages{j+1} = strcat(image_directory, '/', num2str(j), '.png');
         end
     elseif strcmp(dataset, 'campus2')
+        % Campus only has 2 cams
       if start_frame == 1 % Camera 1
         dinfo = dir('~/Campus_II/frames_alameda_noon_1_6_2017');
         cameraListImages = {dinfo.name};
