@@ -66,8 +66,7 @@ end
 [homographies, invhomographies] = loadHomographies(homography_directory,'hda', cameras);
 
 ground_plane_regions = computeGroundPlaneRegions(inplanes, homographies, length(cameras), 'hda');
-%openfig(floor_image); hold on;
-figure; hold on;
+openfig(floor_image); hold on;
 for i=1:length(cameras)
     drawPoly(ground_plane_regions{i},colors{i},0.5,false); % Draw regions
 end
