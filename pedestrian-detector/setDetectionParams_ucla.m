@@ -8,11 +8,8 @@ uclaRootDirectory = '/media/pedro/mct1/UCLA';
 global image_directories
 image_directories = {strcat(uclaRootDirectory,'/view-GL1/'), strcat(uclaRootDirectory,'/view-GL2/'), strcat(uclaRootDirectory,'/view-GL5/')};
 
-global crops_directories
-crops_directories = {'~/mct-bqp/hda_data/filtered_crops/'};
-
 global homography_directory
-homography_directory = '~/mct-bqp/hda_data/homographies';
+homography_directory = '~/mct-bqp/ucla_data/parkinglot/homographies/cam_param.mat';
 
 global fps
 fps = 30.0;
