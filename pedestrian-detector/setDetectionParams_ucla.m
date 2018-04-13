@@ -9,7 +9,7 @@ global image_directories
 image_directories = {strcat(uclaRootDirectory,'/view-GL1/'), strcat(uclaRootDirectory,'/view-GL2/'), strcat(uclaRootDirectory,'/view-GL5/')};
 
 global homography_directory
-homography_directory = '~/mct-bqp/ucla_data/parkinglot/homographies/cam_param.mat';
+homography_directory = '~/mct-bqp/ucla_data/homographies/cam_param.mat';
 
 global fps
 fps = 30.0;
@@ -21,7 +21,7 @@ global resolutions
 resolutions = [1920 1080; 1920 1080];
 
 global durations
-durations = [9877; 9860]; % Number of frames/fps
+durations = [6475; 6475; 6473]; % Number of frames/fps (for some reason a cam lost 2 frames)
 
 global offset
 % Offset between camera 19 and 40 is:

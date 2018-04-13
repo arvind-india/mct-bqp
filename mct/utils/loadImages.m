@@ -18,4 +18,9 @@ function cameraListImages = loadImages(cameras, image_directory, num_frames, sta
         cameraListImages(:,1:2) = [];
         cameraListImages = strcat('~/Campus_II/frames_central_noon_1_6_2017', '/', cameraListImages);
       end
+    elseif strcmp(dataset, 'ucla')
+        for j=start_frame:(start_frame + num_frames)
+            cameraListImages{j+1} = strcat(image_directory, '/frame', num2str(j), '.png');
+        end
     end
+end
