@@ -24,6 +24,14 @@ function [homographies, invhomographies] = loadHomographies(filename, dataset, c
     if strcmp(dataset, 'ucla') == 1
         homographies_struct = load(filename);
         homographies_struct = homographies_struct.cam_param;
+
+        % Load transformation to top view
+        K_top = homographies_struct(4).K % Intrinsic
+        R_top = homographies_struct(4).R % Extrinsic
+        T_top = homographies_struct(4).T % Extrinsic
+        lambda_top = homographies_struct(4).scale;
+        homo_top = lambda_top * K_top * [R_top(:,1) R_top(:,2) T_top];
+
         for i=1:length(cameras)
             K = homographies_struct(i).K % Intrinsic
             R = homographies_struct(i).R % Extrinsic
@@ -34,7 +42,8 @@ function [homographies, invhomographies] = loadHomographies(filename, dataset, c
             if R(:,3) ~= ortho_check
                 disp('3rd column of R is not R1 cross R2!');
             end
-            homographies{i} = lambda * K * [R(:,1) R(:,2) T];
+            homographies{i} = homo_top * (lambda * K * [R(:,1) R(:,2) T]);
+
             invhomographies{i} = inv(homographies{i});
         end
     end

@@ -8,6 +8,9 @@ uclaRootDirectory = '/media/pedro/mct1/UCLA';
 global image_directories
 image_directories = {strcat(uclaRootDirectory,'/view-GL1/'), strcat(uclaRootDirectory,'/view-GL2/'), strcat(uclaRootDirectory,'/view-GL5/')};
 
+global regions_folder
+regions_folder = '~/mct-bqp/ucla_data/regions/';
+
 global homography_directory
 homography_directory = '~/mct-bqp/ucla_data/homographies/cam_param.mat';
 
