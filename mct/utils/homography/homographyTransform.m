@@ -26,6 +26,10 @@ function homoplanes = homographyTransform(inplanes,homographies,num_cameras,data
                 uvo = [u v o];
             	new_pts = uvo*homographies{i};
             end
+            if strcmp(dataset, 'ucla') == 1
+                uvo = [u v o];
+                new_pts = uvo*homographies{i};
+            end
         	new_pts = [new_pts(1)./new_pts(3) new_pts(2)./new_pts(3)];
             homoplanes{i}(p,:) = new_pts;
         end

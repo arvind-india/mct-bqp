@@ -57,7 +57,7 @@ appearance_method = 'naive'; % NOTE Must be either 'naive' or 'fourier'
 intercam_method = 'frank-wolfe'; % NOTE Must be either 'lapjv' or 'frank-wolfe'
 homog_solver = 'svd'; % Method to compute homographies, NOTE must be either 'svd' or 'ransac'
 filter = 'none'; % NOTE must be either 'recursive' or 'non-recursive' or 'none' (kalman in the future?)
-weights = cell(2,1); weights_o = cell(2,1);
+weights = cell(2,1); weights_spatial = cell(2,1);
 %%=========================================================
 debug_test_frames = 1; % DEBUG test these frames
 homo_toggle = 1; % DEBUG Set this to 1 if you wish to only run with homography correction!
@@ -200,7 +200,7 @@ for update_homo = homo_toggle:1 % DEBUG merely for debug, would never use this i
         a = cell2mat(a);
         % Normalize for each candidate
         a = normalize(a,k,N); % NOTE Normalize across each candidate
-        a_o = cell(length(cameras),1);
+        a_spatial = cell(length(cameras),1);
         %---------------------------------------------------------------------------
         % NOTE create motion models
         if ismember(f,detection_frames)
@@ -222,24 +222,24 @@ for update_homo = homo_toggle:1 % DEBUG merely for debug, would never use this i
         end
         m = cell2mat(m);
         m = normalize(m,k,N); % NOTE Normalize across each candidate!
-        m_o = cell(length(cameras),1);
+        m_spatial = cell(length(cameras),1);
         for i = 1:length(cameras)
-            cands_o = cell(n_o{i},1);
+            cands_spatial = cell(n_o{i},1);
             o_c = rem(i,2) + 1; % TODO This is a dirty hack
             targs_o = targs_in_overlap{i};
-            c_o = targs_in_overlap{o_c};
+            c_spatial = targs_in_overlap{o_c};
             for j = 1:n_o{i}
-                cands_o{j} = c_o(:,4:9);
+                cands_spatial{j} = c_spatial(:,4:9);
             end
 
-            [c_a_o, w_o, Z_o, y_o] = appearance(n_o{o_c},n_o{i},targs_o,cands_o,images{i},...
-                images{o_c},appearance_method,h_lambda,h_a_sigma{i},dx,dy,g_candidates, weights_o{i},filter);
-            a_o{i} = c_a_o;
-            weights_o{i} = w_o; % TODO Store weights which might be useful
-            c_m_o = motion(n_o{i},n_o{o_c},motion_models,cands_o,fps,h_m_sigma{i});
-            m_o{i} = c_m_o;
+            [c_a_spatial, w_spatial, Z_spatial, y_spatial] = appearance(n_o{o_c},n_o{i},targs_o,cands_spatial,images{i},...
+                images{o_c},appearance_method,h_lambda,h_a_sigma{i},dx,dy,g_candidates, weights_spatial{i},filter);
+            a_spatial{i} = c_a_spatial;
+            weights_spatial{i} = w_spatial; % TODO Store weights which might be useful
+            c_m_spatial = motion(n_o{i},n_o{o_c},motion_models,cands_spatial,fps,h_m_sigma{i});
+            m_spatial{i} = c_m_spatial;
         end
-        a_o = cell2mat(a_o); m_o = cell2mat(m_o);
+        a_spatial = cell2mat(a_spatial); m_spatial = cell2mat(m_spatial);
         %--------------------------------
         % NOTE create groups
         fprintf('\t 9.Creating groups...\n');
@@ -253,10 +253,9 @@ for update_homo = homo_toggle:1 % DEBUG merely for debug, would never use this i
             end
         end
         if rem(f,h_tau) == 0
-            Y_o = pdist(targs_o(:,8:9)); % Z_o is a dendrogram
-            Z_o = linkage(Y_o,clustering); % Use euclidean distances to do hierarchical clustering (single is default)
-            C_o = cluster(Z_o,'cutoff',h_group_distance,'criterion','distance');
-            groups_o = C_o;
+            y_spatial = pdist(targs_o(:,8:9)); % Z_spatial is a dendrogram
+            Z_spatial = linkage(y_spatial,clustering); % Use euclidean distances to do hierarchical clustering (single is default)
+            groups_spatial = cluster(Z_spatial,'cutoff',h_group_distance,'criterion','distance');
         end
         %--------------------------------
         % NOTE grouping
@@ -267,11 +266,11 @@ for update_homo = homo_toggle:1 % DEBUG merely for debug, would never use this i
         G = eye(N*k) - Dinvsq*T*Dinvsq; %Normalized Laplacian matrix so G is convex
         %plotGrouping(T,G);
         G = zeros(N*k);
-        T_o = h_grouping(N_o,targs_o,targs_in_overlap,groups_o,h_G_sigma);
-        Dinvsq_o = diag(sum(T_o,2)).^(-1/2); %row sum
-        Dinvsq_o(~isfinite(Dinvsq_o)) = 0; %Remove infinites from Dsinvsq, Ds.^(-1/2) is only in the diagonal
-        G_o = Dinvsq_o*T_o*Dinvsq_o; %TODO Due to its structure it cant be Normalized Laplacian matrix so G is convex
-        %G_o = zeros(N_o*2,N_o*2);
+        T_spatial = h_grouping(N_o,targs_o,targs_in_overlap,groups_spatial,h_G_sigma);
+        Dinvsq_spatial = diag(sum(T_spatial,2)).^(-1/2); %row sum
+        Dinvsq_spatial(~isfinite(Dinvsq_spatial)) = 0; %Remove infinites from Dsinvsq, Ds.^(-1/2) is only in the diagonal
+        G_spatial = Dinvsq_spatial*T_spatial*Dinvsq_spatial; %TODO Due to its structure it cant be Normalized Laplacian matrix so G is convex
+        %G_spatial = zeros(N_o*2,N_o*2);
         %--------------------------------
         % NOTE out-of-bounds cue
         b = cell(length(cameras),1);
@@ -282,17 +281,17 @@ for update_homo = homo_toggle:1 % DEBUG merely for debug, would never use this i
             b{i} = c_b;
         end
         b = cell2mat(b);
-        b_o = zeros(length(a_o),1); % NOTE This is unecessary in the spatial domain
+        b_spatial = zeros(length(a_spatial),1); % NOTE This is unecessary in the spatial domain
         %---------------------------------------------------------------------------
         % NOTE join all cues and solve FW
         fprintf('\t «« (TEMPORAL+SPATIAL) Using FW optimization! »» \n');
         % Prepare inputs for Frank Wolfe (conditional gradient)
         [H_,F,Aeq,Beq,labels] = FW_preamble(N,k,a,m,G,b,Alpha,Zeta,n1,n2);
-        [H_o,F_o,Aeq_o,Beq_o,labels_o] = FW_preamble(N_o,2,a_o,m_o,G_o,b_o,h_Alpha,h_Zeta,n1_o,n2_o);
+        [H_spatial,F_spatial,Aeq_spatial,Beq_o,labels_o] = FW_preamble(N_o,2,a_spatial,m_spatial,G_spatial,b_spatial,h_Alpha,h_Zeta,n1_o,n2_o);
 
         % Solve the problem using Frank Wolfe
         [minx,minf,x_t,f_t,t1_end] = FW_crowd_wrapper(H_,F,Aeq,Beq,labels,FW_max_iterations,FW_duality_gap,FW_eps); % minx is the value we want
-        [minx_o,minf_o,x_t_o,f_t_o,t1_end_o] = FW_crowd_wrapper(H_o,F_o,Aeq_o,Beq_o,labels_o,h_FW_max_iterations,h_FW_duality_gap,h_FW_eps);
+        [minx_o,minF_spatial,x_T_spatial,f_T_spatial,t1_end_o] = FW_crowd_wrapper(H_spatial,F_spatial,Aeq_spatial,Beq_o,labels_o,h_FW_max_iterations,h_FW_duality_gap,h_FW_eps);
 
         optimization_results = reshape(minx,k,[]); optimization_results_percam = cell(2,1);
         opt_results_o = reshape(minx_o,2,[]);
@@ -300,9 +299,9 @@ for update_homo = homo_toggle:1 % DEBUG merely for debug, would never use this i
         % TODO fix this, should work for multiple cameras
         optimization_results_percam{1} = optimization_results(:,1:n1);
         optimization_results_percam{2} = optimization_results(:,n1:end);
-        opt_results_percam_o{1} = opt_results_o(:,1:n1_o);
-        opt_results_percam_o{2} = opt_results_o(:,n1_o+1:end);
-        valid_matchings = getValidMatchings_fw(n_o,cameras,opt_results_percam_o,targs_in_overlap,valid_matchings);
+        opt_results_percam_spatial{1} = opt_results_o(:,1:n1_o);
+        opt_results_percam_spatial{2} = opt_results_o(:,n1_o+1:end);
+        valid_matchings = getValidMatchings_fw(n_o,cameras,opt_results_percam_spatial,targs_in_overlap,valid_matchings);
 
         fprintf('\t Found optimal candidates for each target.\n');
 
@@ -358,3 +357,6 @@ end
 plot_output(all_candidates, ground_plane_regions, ground_plane_regions_adjusted, cameras, show_candidates, ...
 show_ground_truth, candidates_frame, draw_regions, tracklets, nohomocorrec_tracklets, gnd_detections, overlap_adjusted, ...
 num_frames,debug_gnd_truth_frames,start_frames);
+
+% TODO Evaluate the given trajectories compared to the ground truth
+evaluate(ground_plane_regions,ground_plane_regions_adjusted,tracklets);

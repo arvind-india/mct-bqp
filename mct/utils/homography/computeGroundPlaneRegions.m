@@ -13,3 +13,4 @@ function homoplanes = computeGroundPlaneRegions(inplanes, homographies, num_came
         homoplanes{i} = [homoplanes{i};homoplanes{i}(1,:)];
         inplanes{i} = [inplanes{i};inplanes{i}(1,:)];
     end
+end

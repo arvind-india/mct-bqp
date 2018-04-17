@@ -3,8 +3,8 @@ global cameras
 cameras = {18, 19, 40};
 
 global hdaRootDirectory
-%hdaRootDirectory = '/media/pedro/mct1/HDA_Dataset_V1.3';
-hdaRootDirectory = '~/HDA_Dataset_V1.3';
+hdaRootDirectory = '/media/pedro/mct1/HDA_Dataset_V1.3';
+%hdaRootDirectory = '~/HDA_Dataset_V1.3';
 global image_directories
 image_directories = {strcat(hdaRootDirectory,'/images/cam18/'),strcat(hdaRootDirectory,'/images/cam19/'), strcat(hdaRootDirectory,'/images/cam40/')};
 
@@ -28,7 +28,7 @@ durations = [9885; 9877; 9860]; % Number of frames/fps
 
 global offset
 % Offset between camera 18 and 19 and 40 is:
-offset = [0, 2, 14]; % in seconds
+offset = [18, 4, 0]; % in seconds
 
 global offset_frames
 offset_frames = offset * fps;

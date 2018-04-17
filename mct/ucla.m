@@ -6,11 +6,11 @@ gnd_detections = load_data('ucla', cameras); % Load the images (needed for the a
 cameraListImages = cell(2,1); inplanes = cell(2,1);
 for i=1:length(cameras)
     cameraListImages{i} = loadImages(cameras, image_directories{i}, durations(i), 0, 'ucla');
-    %inplanes{i} = load(strcat(visibility_regions_directory,num2str(cameras{i}),'.mat')); inplanes{i} = inplanes{i}.t;
+    inplanes{i} = dlmread(strcat(regions_folder, cameras{i}, '.txt'));
 end
 [homographies, invhomographies] = loadHomographies(homography_directory,'ucla', cameras);
-%ground_plane_regions = computeGroundPlaneRegions(inplanes, homographies, length(cameras), 'hda');
-%[overlap, ~, ~] = computeOverlap(ground_plane_regions);
+ground_plane_regions = computeGroundPlaneRegions(inplanes, homographies, length(cameras), 'hda');
+[overlap, ~, ~] = computeOverlap(ground_plane_regions);
 
 % TODO Remove entries with the lost or occlusion bit set to 1
 for i=1:length(cameras)

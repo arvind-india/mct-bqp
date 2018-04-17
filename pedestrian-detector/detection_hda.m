@@ -1,7 +1,15 @@
 %addpath('/home/pedro/rcnn');
 set(0,'DefaultFigureVisible','on');
 % Set params of the detection
-setDetectionParams_hda_hall_3cams;
+subset = '3cams';
+if strcmp(subset,'3cams')
+    setDetectionParams_hda_hall_3cams;
+elseif strcmp(subset,'hall')
+    setDetectionParams_hda_hall;
+elseif strcmp(subset,'elevator')
+    setDetectionParams_hda_elevator;
+end
+
 
 cameraListImages = cell(length(cameras),1);
 inplanes = cell(length(cameras),1);
