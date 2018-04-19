@@ -26,23 +26,29 @@ function [homographies, invhomographies] = loadHomographies(filename, dataset, c
         homographies_struct = homographies_struct.cam_param;
 
         % Load transformation to top view
-        K_top = homographies_struct(4).K % Intrinsic
-        R_top = homographies_struct(4).R % Extrinsic
-        T_top = homographies_struct(4).T % Extrinsic
-        lambda_top = homographies_struct(4).scale;
+        viewTOPid = 5;
+        K_top = homographies_struct(viewTOPid).K % Intrinsic
+        R_top = homographies_struct(viewTOPid).R % Extrinsic
+        T_top = homographies_struct(viewTOPid).T % Extrinsic
+        lambda_top = homographies_struct(viewTOPid).scale;
         homo_top = lambda_top * K_top * [R_top(:,1) R_top(:,2) T_top];
 
         for i=1:length(cameras)
+
             K = homographies_struct(i).K % Intrinsic
             R = homographies_struct(i).R % Extrinsic
             T = homographies_struct(i).T % Extrinsic
             lambda = homographies_struct(i).scale;
             % Check for orthogonality
             ortho_check = cross(R(:,1),R(:,2)); % This should be R(:,3)
-            if R(:,3) ~= ortho_check
                 disp('3rd column of R is not R1 cross R2!');
+                if R(:,3) ~= ortho_check
             end
-            homographies{i} = homo_top * (lambda * K * [R(:,1) R(:,2) T]);
+            if i == 1
+                homographies{i} = homo_top;
+            else
+                homographies{i} = homo_top * (lambda * K * [R(:,1) R(:,2) T]);
+            end
 
             invhomographies{i} = inv(homographies{i});
         end

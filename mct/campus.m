@@ -18,6 +18,7 @@ fprintf('Starting tracking loop:\n');
 num_frames = 10; % Number of frames
 start = 0;
 start_frames = [start + offset_frames start]; % Frames to start collecting images
+g_candidates = 9;
 k = g_candidates ^ 2; % Candidates per target
 tau = 3;
 groups = {};

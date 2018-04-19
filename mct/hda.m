@@ -10,6 +10,9 @@ end
 [homographies, invhomographies] = loadHomographies(homography_directory,'hda', cameras);
 ground_plane_regions = computeGroundPlaneRegions(inplanes, homographies, length(cameras), 'hda');
 [overlap, ~, ~] = computeOverlap(ground_plane_regions);
+
+
+
 %%=========================================================
 num_frames = 7; % Number of frames
 start = 6811;

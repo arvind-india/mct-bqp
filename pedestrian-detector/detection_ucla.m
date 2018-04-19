@@ -22,9 +22,9 @@ for id = 1:length(cameras)
         w = cam_detections{id}(j,4) - xmin;
         h = cam_detections{id}(j,5) - ymin;
 
-        t = H(homographies{id}, [xmin + w/2; ymin + h]);
+        t = H_alt(homographies{id}, [xmin + w/2 ymin + h]);
 
-        gnd_detections{id}(j,:) = [id cam_detections{id}(j,6) cam_detections{id}(j,1) xmin ymin h w t' cam_detections{id}(j,7) cam_detections{id}(j,8)];
+        gnd_detections{id}(j,:) = [id cam_detections{id}(j,6) cam_detections{id}(j,1) xmin ymin h w t cam_detections{id}(j,7) cam_detections{id}(j,8)];
     end
 end
 
