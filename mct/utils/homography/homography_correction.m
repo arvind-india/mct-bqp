@@ -1,4 +1,4 @@
-function [Hs, cam_dets_gnd, cam_region_gnd, n_c] = homography_correction(matchings, inplanes, ground_plane_regions, homog_solver, N, rho_r, rho_d, debug)
+function [Hs, cam_dets_gnd, cam_region_gnd, n_c] = homography_correction(matchings, inplanes, ground_plane_regions, homog_solver, N, rho_r, rho_d, debug, min_delta)
     %-----------------------------PREAMBLE---------------------------------
     cam1_region_cam = inplanes{1};
     cam2_region_cam = inplanes{2};
@@ -25,15 +25,33 @@ function [Hs, cam_dets_gnd, cam_region_gnd, n_c] = homography_correction(matchin
     end
     region_shifts = zeros(N,1); region1_shift = 0; region2_shift = 0;
     distances = zeros(N,1); dd = zeros(N-1,1); distances_1 = zeros(N,1); distances_2 = zeros(N,1);
+
+    noise = true;
+    power = -100; % in dBs
+
     for reps = 1:N
         % "Fix" H1 and compute new H2
+        if noise == true
+            noise_mat_r = wgn(size(cam2_region_gnd,1), size(cam2_region_gnd,2), power);
+            noise_mat_d = wgn(size(cam1_dets_gnd,1), size(cam1_dets_gnd,2), power);
+        else
+            noise_mat_r = zeros(size(cam2_region_gnd,1), size(cam2_region_gnd,2));
+            noise_mat_d = zeros(size(cam1_dets_gnd,1), size(cam1_dets_gnd,2));
+        end
         regdet_mat1 = vertcat(repmat(cam2_region_cam,rho_r,1), repmat(cam2_dets_cam,rho_d,1));
-        regdet_mat2 = vertcat(repmat(cam2_region_gnd,rho_r,1), repmat(cam1_dets_gnd,rho_d,1));
+        regdet_mat2 = vertcat(repmat(cam2_region_gnd + noise_mat_r,rho_r,1), repmat(cam1_dets_gnd + noise_mat_d,rho_d,1));
         H2 = solve_homography(regdet_mat1, regdet_mat2, homog_solver);
 
         % "Fix" H2 and compute new H1
+        if noise == true
+            noise_mat_r = wgn(size(cam1_region_gnd,1), size(cam1_region_gnd,2), power);
+            noise_mat_d = wgn(size(cam2_dets_gnd,1), size(cam2_dets_gnd,2), power);
+        else
+            noise_mat_r = zeros(size(cam1_region_gnd,1), size(cam1_region_gnd,2));
+            noise_mat_d = zeros(size(cam2_dets_gnd,1), size(cam2_dets_gnd,2));
+        end
         regdet_mat1 = vertcat(repmat(cam1_region_cam,rho_r,1), repmat(cam1_dets_cam,rho_d,1));
-        regdet_mat2 = vertcat(repmat(cam1_region_gnd,rho_r,1), repmat(cam2_dets_gnd,rho_d,1));
+        regdet_mat2 = vertcat(repmat(cam1_region_gnd + noise_mat_r,rho_r,1), repmat(cam2_dets_gnd + noise_mat_d,rho_d,1));
         H1 = solve_homography(regdet_mat1, regdet_mat2, homog_solver);
 
         % Compute new cam2 ground plane regions and detections with n_H2
@@ -78,6 +96,9 @@ function [Hs, cam_dets_gnd, cam_region_gnd, n_c] = homography_correction(matchin
         fprintf(['\t\t' num2str(distances(reps)) ' -- Iter ', num2str(reps),'| dist between gnd plane detections: \n']);
         if reps ~= 1
             dd(reps-1) = distances(reps-1) - distances(reps);
+        end
+        if dd(reps-1) < min_delta
+            break;
         end
     end
     if strcmp(debug,'debug') %DEBUG

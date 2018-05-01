@@ -1,7 +1,7 @@
 %addpath('/home/pedro/rcnn');
 set(0,'DefaultFigureVisible','on');
 % Set params of the detection
-subset = '3cams';
+subset = 'hall';
 if strcmp(subset,'3cams')
     setDetectionParams_hda_hall_3cams;
 elseif strcmp(subset,'hall')
@@ -9,7 +9,6 @@ elseif strcmp(subset,'hall')
 elseif strcmp(subset,'elevator')
     setDetectionParams_hda_elevator;
 end
-
 
 cameraListImages = cell(length(cameras),1);
 inplanes = cell(length(cameras),1);
@@ -86,7 +85,7 @@ drawPoly(overlap,colors{end},1.0,false);
 %%===============================================================
 % Convert all cam plane regions and store them if they don't exist already (this is the input to the tracker)
 for i=1:length(cameras)
-    fileID = fopen(['~/mct-bqp/hda_data/detections-gndplane/', num2str(cameras{i}), '.txt'],'w');
+    fileID = fopen(['~/mct-bqp/hda_data/' subset '/detections-gndplane/', num2str(cameras{i}), '.txt'],'w');
     for j=1:length(detections{i})
         gnd_detections{i}{j} = zeros(size(detections{i}{j},1), 9);
         for d=1:size(detections{i}{j},1)

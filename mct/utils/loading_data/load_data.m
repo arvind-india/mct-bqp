@@ -1,9 +1,8 @@
-function gnd_detections = load_data(dataset, cameras)
+function gnd_detections = load_data(dataset, cameras, subset)
     % load the detections file
     gnd_detections = cell(length(cameras),1);
-
     for id = 1:length(cameras)
-        filename_g = ['/home/pedro/mct-bqp/' dataset '_data/detections-gndplane/' num2str(cameras{id}) '.txt'];
+        filename_g = ['/home/pedro/mct-bqp/' dataset '_data/' subset '/detections-gndplane/' num2str(cameras{id}) '.txt'];
         temp_g = csvread(filename_g);
         gnd_detections{id} = temp_g;
         gnd_detections{id}(:,2) = gnd_detections{id}(:,2) + 1; % NOTE Because of matlab

@@ -1,8 +1,14 @@
-set(0,'DefaultFigureVisible','off');
+set(0,'DefaultFigureVisible','on');
 setDetectionParams_campus2;
 setTrackerParams;
 
-gnd_detections = load_data('campus2', cameras);
+gnd_detections = load_data('mini-campus2', cameras);
+
+
+
+
+
+
 % Load the images (needed for the appearance cues)
 cameraListImages = cell(2,1); inplanes = cell(2,1);
 for i=1:length(cameras)
@@ -13,12 +19,33 @@ end
 ground_plane_regions = computeGroundPlaneRegions(inplanes, homographies, length(cameras), 'campus_2');
 [overlap, ~, ~] = computeOverlap(ground_plane_regions);
 
+% TODO Plot mini-campus for debug
+figure; hold on;
+colors = {'Red','Blue','Black'};
+for i=1:length(cameras)
+    drawPoly(ground_plane_regions{i},colors{i},0.5,false); % Draw regions
+end
+drawPoly(overlap,colors{3},0.5,false);
+for j=1:size(gnd_detections{i},1)
+    for i=1:length(cameras)
+        if ~isempty(gnd_detections{i}{j})
+            if i == 1
+                scatter(gnd_detections{i}{j}(:,8),gnd_detections{i}{j}(:,9),8,'MarkerFaceColor',rgb('Red'),'MarkerEdgeColor',rgb('Red'));
+            end
+            if i == 2
+                scatter(gnd_detections{i}{j}(:,8),gnd_detections{i}{j}(:,9),8,'MarkerFaceColor',rgb('Blue'),'MarkerEdgeColor',rgb('Blue'));
+            end
+        end
+    end
+    %waitforbuttonpress;
+end
+
 %%=========================================================
 fprintf('Starting tracking loop:\n');
 num_frames = 10; % Number of frames
 start = 0;
-start_frames = [start + offset_frames start]; % Frames to start collecting images
-g_candidates = 9;
+start_frames = [start start]; % Frames to start collecting images, here in the mini-campus they are already prealigned
+g_candidates = 5;
 k = g_candidates ^ 2; % Candidates per target
 tau = 3;
 groups = {};
@@ -33,7 +60,7 @@ for f = 1:(num_frames - 1)
     fprintf(['Frame ' num2str(f) ':\n']);
     fprintf('\t Getting targets...\n');
     if f == 1
-        targs = cell(2,1); % TODO Actual targets from both cameras
+        targs = cell(length(cameras),1); % TODO Actual targets from both cameras
         for id = 1:length(cameras)
             targs{id} = gnd_detections{id}{start_frames(id) + f};
         end

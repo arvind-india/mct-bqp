@@ -106,10 +106,10 @@ global order
 order = 'cardinal';
 
 global cpu_results
-cpu_results = '~/mct-bqp/hda_data/detections-camplane/CPU/dets_';
+cpu_results = '~/mct-bqp/hda_data/hall/detections-camplane/CPU/dets_';
 
 global gpu_results
-gpu_results = '~/mct-bqp/hda_data/detections-camplane/GPU/dets_';
+gpu_results = '~/mct-bqp/hda_data/hall/detections-camplane/GPU/dets_';
 
 global use_GPU
 use_GPU = [1 1];

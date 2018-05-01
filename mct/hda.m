@@ -1,7 +1,7 @@
 set(0,'DefaultFigureVisible','on');
 setDetectionParams_hda_hall; setTrackerParams;
-
-gnd_detections = load_data('hda', cameras); % Load the images (needed for the appearance cues)
+subset = 'hall';
+gnd_detections = load_data('hda', cameras, subset); % Load the images (needed for the appearance cues)
 cameraListImages = cell(2,1); inplanes = cell(2,1);
 for i=1:length(cameras)
     cameraListImages{i} = loadImages(cameras, image_directories{i}, durations(i), 0, 'hda');
@@ -10,12 +10,15 @@ end
 [homographies, invhomographies] = loadHomographies(homography_directory,'hda', cameras);
 ground_plane_regions = computeGroundPlaneRegions(inplanes, homographies, length(cameras), 'hda');
 [overlap, ~, ~] = computeOverlap(ground_plane_regions);
-
-
-
+openfig(floor_image); hold on;
+colors = {'Red','Blue','Black'};
+for i=1:length(cameras)
+    drawPoly(ground_plane_regions{i},colors{i},0.5,false); % Draw regions
+end
+drawPoly(overlap,colors{end},1.0,false);
 %%=========================================================
 num_frames = 7; % Number of frames
-start = 6811;
+start = 6812;
 start_frames = [start + offset_frames start]; % Frames to start collecting images
 g_candidates = 9; % basis for the number of candidates
 k = g_candidates ^ 2; % Candidates per target
@@ -56,6 +59,8 @@ h_a_sigma{1} = [1 ^ 2 0.0; 0.0 1 ^ 2]; h_a_sigma{2} = [1 ^ 2 0.0; 0.0 1 ^ 2];
 h_m_sigma{1} = [0.5 0; 0 0.5]; h_m_sigma{2} = [0.5 0; 0 0.5];
 h_G_sigma =  2 * (2 ^ 2);
 
+min_delta = 0.05; % NOTE minimum delta for homography correction loop
+
 appearance_method = 'naive'; % NOTE Must be either 'naive' or 'fourier'
 intercam_method = 'frank-wolfe'; % NOTE Must be either 'lapjv' or 'frank-wolfe'
 homog_solver = 'svd'; % Method to compute homographies, NOTE must be either 'svd' or 'ransac'
@@ -72,9 +77,18 @@ homocorrec_debug = 'no_debug';
 candidates_frame = 2;
 debug_gnd_truth_frames = 3;
 nohomocorrec_tracklets = {};
+accumulated_Zs = cell(length(cameras),1);
 %%=========================================================
 % Frames at which detections are available/allowed
 detection_frames = [1; 4; 9]; % These are used to updated targets/number of targets at these frames
+%%=========================================================
+save config.mat num_frames start_frames g_candidates k tau h_tau ...
+psi xi N penalize_val reward_val gating_distance score_threshold ...
+initial_speed_x initial_speed_y sampling_plane dx dy g_dx g_dy clustering ...
+comfort_distance FW_max_iterations FW_duality_gap FW_eps lambda Alpha Zeta ...
+a_sigma m_sigma G_sigma h_group_distance h_FW_max_iterations h_FW_duality_gap ...
+h_FW_eps h_lambda h_Alpha h_Zeta h_a_sigma h_m_sigma h_G_sigma min_delta ...
+appearance_method intercam_method homog_solver filter weights weights_spatial
 %%=========================================================
 fprintf('Starting tracking loop:\n');
 for update_homo = homo_toggle:1 % DEBUG merely for debug, would never use this is "production"
@@ -161,6 +175,12 @@ for update_homo = homo_toggle:1 % DEBUG merely for debug, would never use this i
         fprintf('\t 5.Checking for targets in the overlapping regions...\n')
         targs_in_overlap = {}; motion_models_overlap = {};
         for t = 1:size(targs,1)
+            if targs(t,1) == 1
+                plot(targs(t,8),targs(t,9),'r+');
+            end
+            if targs(t,1) == 2
+                plot(targs(t,8),targs(t,9),'b+');
+            end
             if polyin([targs(t,8) targs(t,9)],overlap)
                 targs_in_overlap{end+1} = targs(t,:);
                 if f ~= 1
@@ -179,28 +199,35 @@ for update_homo = homo_toggle:1 % DEBUG merely for debug, would never use this i
             for i = 1:length(cameras)
                 n_o{i} = size(targs_in_overlap{i},1);
             end
-            N_o = sum(n_o);
+
+            N_o = sum(cell2mat(n_o));
         end
         targs_o = cell2mat(targs_in_overlap);
+        n1_o = size(targs_in_overlap{1},1);
+        n2_o = size(targs_in_overlap{2},1);
         fprintf('\t --------------------------------- \n')
         %---------------------------------------------------------------------------
         % NOTE appearance
         fprintf('\t 6.Computing appearance cues...\n');
         a = cell(length(cameras),1);
+        Z_models = cell(length(cameras),1); y_models = cell(length(cameras),1);
         for i = 1:length(cameras)
             n = size(targs_percam{i},1);
             % TODO implement fourier method to do this following
-            [c_a, w, Z_app, y] = appearance(k,n,targs_percam{i},cands_percam{i},images{i},...
-                next_images{i},appearance_method,lambda,a_sigma{i},dx,dy, g_candidates, weights{i},filter);
+
+            % Get target models
+            [Zs, ys] = appearance_model(n,targs,image,a_sigma,dx,dy,g_candidates);
+            Z_models{i} = Zs; y_models{i} = ys;
+            accumulated_Zs{i}{end + 1} = Zs;
+            [c_a, w] = appearance(k,n,cands_percam{i},next_images{i},appearance_method,lambda,weights{i},filter,Zs,ys);
             a{i} = c_a;
             %plotAppearanceBBs(i,n,k,cameraListImages,f,targs_percam,cameras,cands_percam, start_frames);
             %plotAppearanceValues(i,n,k,c_a,cands_homo_percam,cameras);
-            plotAppearanceWeighs(i,n,k,w,weights{i}); % w are the new weights and weights{i} are the previous ones
+            plotAppearanceWeights(i,n,k,w,weights{i}); % w are the new weights and weights{i} are the previous ones
 
             % TODO Store weights and use them in a filter-like implementation
             weights{i} = w;
         end
-        a = cell2mat(a);
         % Normalize for each candidate
         a = normalize(a,k,N); % NOTE Normalize across each candidate
         a_spatial = cell(length(cameras),1);
@@ -210,6 +237,11 @@ for update_homo = homo_toggle:1 % DEBUG merely for debug, would never use this i
             fprintf('\t 7.Creating motion models...\n');
             motion_models = cell(N,1);
             for t = 1:size(targs,1)
+                % TODO Should use the first two detections to get initial speeds. Maybe use all averaged detections
+                cam = targs(t,1);
+                initial_speed_x = sum(gnd_detections{cam}{start_frames(cam) + detection_frames(2)}(:,8) - gnd_detections{cam}{start_frames(cam) + detection_frames(1)}(:,8)./dt);
+                initial_speed_y = sum(gnd_detections{cam}{start_frames(cam) + detection_frames(2)}(:,9) - gnd_detections{cam}{start_frames(cam) + detection_frames(1)}(:,9)./dt);
+                % Assign the new models
                 motion_models{t} = [targs(t,8); targs(t,9); initial_speed_x; initial_speed_y];
             end
         end
@@ -223,26 +255,30 @@ for update_homo = homo_toggle:1 % DEBUG merely for debug, would never use this i
             m{i} = c_m;
             %plotMotion(i, c_m, k, n, floor_image, cands_percam);
         end
-        m = cell2mat(m);
         m = normalize(m,k,N); % NOTE Normalize across each candidate!
+        %--------------------------------
+        % NOTE motion spatial and appearance spatial
         m_spatial = cell(length(cameras),1);
         for i = 1:length(cameras)
             cands_spatial = cell(n_o{i},1);
             o_c = rem(i,2) + 1; % TODO This is a dirty hack
-            targs_o = targs_in_overlap{i};
             c_spatial = targs_in_overlap{o_c};
             for j = 1:n_o{i}
                 cands_spatial{j} = c_spatial(:,4:9);
             end
-
-            [c_a_spatial, w_spatial, Z_spatial, y_spatial] = appearance(n_o{o_c},n_o{i},targs_o,cands_spatial,images{i},...
-                images{o_c},appearance_method,h_lambda,h_a_sigma{i},dx,dy,g_candidates, weights_spatial{i},filter);
+            % TODO use inter-frame appearance models that have already been built Z_model and y_models
+            [c_a_spatial, w_spatial] = appearance(n_o{o_c},n_o{i},cands_spatial,images{o_c},appearance_method,h_lambda,weights_spatial{i},filter,Z_models,y_models);
             a_spatial{i} = c_a_spatial;
             weights_spatial{i} = w_spatial; % TODO Store weights which might be useful
             c_m_spatial = motion(n_o{i},n_o{o_c},motion_models,cands_spatial,fps,h_m_sigma{i});
             m_spatial{i} = c_m_spatial;
         end
         a_spatial = cell2mat(a_spatial); m_spatial = cell2mat(m_spatial);
+
+        % TODO This is experimental
+        a_spatial = normalize(a_spatial,2,N_o); m_spatial = normalize(m_spatial,2,N_o);
+
+
         %--------------------------------
         % NOTE create groups
         fprintf('\t 9.Creating groups...\n');
@@ -290,7 +326,7 @@ for update_homo = homo_toggle:1 % DEBUG merely for debug, would never use this i
         fprintf('\t «« (TEMPORAL+SPATIAL) Using FW optimization! »» \n');
         % Prepare inputs for Frank Wolfe (conditional gradient)
         [H_,F,Aeq,Beq,labels] = FW_preamble(N,k,a,m,G,b,Alpha,Zeta,n1,n2);
-        [H_spatial,F_spatial,Aeq_spatial,Beq_o,labels_o] = FW_preamble(N_o,2,a_spatial,m_spatial,G_spatial,b_spatial,h_Alpha,h_Zeta,n1_o,n2_o);
+        [H_spatial,F_spatial,Aeq_spatial,Beq_o,labels_o] = FW_preamble(N_o,2,a_spatial,m_spatial,G_spatial,b_spatial,h_Alpha,h_Zeta,n_o{1},n_o{2});
 
         % Solve the problem using Frank Wolfe
         [minx,minf,x_t,f_t,t1_end] = FW_crowd_wrapper(H_,F,Aeq,Beq,labels,FW_max_iterations,FW_duality_gap,FW_eps); % minx is the value we want
@@ -319,8 +355,13 @@ for update_homo = homo_toggle:1 % DEBUG merely for debug, would never use this i
                 end
             end
             fprintf('\t\t Correcting homographies...\n');
-            [rho_r, rho_d, best_N] = determineRho(v_matchings, inplanes, ground_plane_regions, homog_solver); % Determines good rho values for convergence
-            [homographies, cam_dets_gnd, ground_plane_regions_adjusted, n_c] = homography_correction(v_matchings, inplanes, ground_plane_regions, homog_solver, best_N, rho_r, rho_d, homocorrec_debug);
+            [rho_r, rho_d, best_N] = determineRho_old(v_matchings, inplanes, ground_plane_regions, homog_solver); % Determines good rho values for convergence
+
+            % TODO test this method
+            %[rho_r, rho_d, best_N] = determineRho(v_matchings, inplanes, ground_plane_regions, homog_solver); % Determines good rho values for convergence
+
+
+            [homographies, cam_dets_gnd, ground_plane_regions_adjusted, n_c] = homography_correction(v_matchings, inplanes, ground_plane_regions, homog_solver, best_N, rho_r, rho_d, homocorrec_debug, min_delta);
             % NOTE Changed here from previous commit to simplify
             for i=1:length(cameras)
                 invhomographies{i} = inv(homographies{i});
@@ -357,9 +398,16 @@ for update_homo = homo_toggle:1 % DEBUG merely for debug, would never use this i
 end
 
 % NOTE Plot final tracks for debug mostly
+%figure; hold on;
+openfig(floor_image); hold on;
+
 plot_output(all_candidates, ground_plane_regions, ground_plane_regions_adjusted, cameras, show_candidates, ...
 show_ground_truth, candidates_frame, draw_regions, tracklets, nohomocorrec_tracklets, gnd_detections, overlap_adjusted, ...
 num_frames,debug_gnd_truth_frames,start_frames);
 
 % TODO Evaluate the given trajectories compared to the ground truth
-evaluate(ground_plane_regions,ground_plane_regions_adjusted,tracklets);
+[metrics,tracks,gnd_tracks] = evaluate(ground_plane_regions,ground_plane_regions_adjusted,gnd_detections,tracklets,start_frames);
+fprintf(['total dx for cam 19: ' num2str(sum(metrics{1}(:,1))) ' m \n']);
+fprintf(['total dy for cam 19: ' num2str(sum(metrics{1}(:,2))) ' m \n']);
+fprintf(['total dx for cam 40: ' num2str(sum(metrics{2}(:,1))) ' m \n']);
+fprintf(['total dy for cam 40: ' num2str(sum(metrics{2}(:,2))) ' m \n']);
