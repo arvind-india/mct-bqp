@@ -216,7 +216,8 @@ for update_homo = homo_toggle:1 % DEBUG merely for debug, would never use this i
             % TODO implement fourier method to do this following
 
             % Get target models
-            [Zs, ys] = appearance_model(n,targs,image,a_sigma,dx,dy,g_candidates);
+            % TODO Fixed images to images{i}, and targs to targs_percam{i}
+            [Zs, ys] = appearance_model(n,targs_percam{i},images{i},a_sigma,dx,dy,g_candidates);
             Z_models{i} = Zs; y_models{i} = ys;
             accumulated_Zs{i}{end + 1} = Zs;
             [c_a, w] = appearance(k,n,cands_percam{i},next_images{i},appearance_method,lambda,weights{i},filter,Zs,ys);
@@ -256,6 +257,7 @@ for update_homo = homo_toggle:1 % DEBUG merely for debug, would never use this i
             %plotMotion(i, c_m, k, n, floor_image, cands_percam);
         end
         m = normalize(m,k,N); % NOTE Normalize across each candidate!
+
         %--------------------------------
         % NOTE motion spatial and appearance spatial
         m_spatial = cell(length(cameras),1);
@@ -277,7 +279,6 @@ for update_homo = homo_toggle:1 % DEBUG merely for debug, would never use this i
 
         % TODO This is experimental
         a_spatial = normalize(a_spatial,2,N_o); m_spatial = normalize(m_spatial,2,N_o);
-
 
         %--------------------------------
         % NOTE create groups

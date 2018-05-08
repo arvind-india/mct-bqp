@@ -7,9 +7,9 @@ cameraListImages = cell(length(cameras),1); inplanes = cell(length(cameras),1);
 for i=1:length(cameras)
     cameraListImages{i} = loadImages(cameras, image_directories{i}, durations(i), 0, 'ucla');
     inplanes{i} = dlmread(strcat(regions_folder, cameras{i}, '.txt'));
-    % TODO Make this prettier in the future
-    inplanes{i}(:,1) = inplanes{i}(:,1) * (1024/1920);
-    inplanes{i}(:,2) = inplanes{i}(:,2) * (576/1080);
+    % TODO These are already in the 1024 format
+    inplanes{i}(:,1) = inplanes{i}(:,1);
+    inplanes{i}(:,2) = inplanes{i}(:,2);
 end
 
 [homographies, invhomographies] = loadHomographies(homography_directory,'ucla', cameras);
@@ -32,7 +32,21 @@ end
 %[overlap, ~, ~] = computeOverlap(ground_plane_regions);
 
 % Debug points that should overlap from all views
+% DEBUG I use the left foot of a man mounting his bike from frames 1 as a reference point
+% DEBUG I use the the tip of the second white mark of the parkinglot to the right of the white car as another ref point
+figure; hold on;
+colors = {'Red','Blue','Green','Black'};
+img_point_view1 = [48, 232 ; 542, 252];
+img_point_view2 = [832, 204 ; 948, 291];
+img_point_view3 = [422, 560 ; 146, 405];
 
+for i = 1:length(cameras)
+    for j = 1:size(img_point_view1,1)
+        pt = img_point_view1(j,:);
+        new_pt = H_ucla(homographies{i},pt);
+        scatter(new_pt(1),new_pt(2),8,'MarkerFaceColor',rgb(colors{i}),'MarkerEdgeColor',rgb(colors{i}));
+    end
+end
 
 
 % TODO Remove entries with the lost or occlusion bit set to 1
@@ -44,23 +58,16 @@ for i=1:length(cameras)
         gnd_detections{i}{j}(TFall,:) = [];
     end
 end
-colors = {'Red','Blue','Green','Black'};
+
 figure; hold on;
 for i=1:length(cameras)
     drawPoly(ground_plane_regions{i},colors{i},0.5,false); % Draw regions
 end
 
 figure; hold on;
+sample_start = 1000; sample_size = 1000;
 for i=1:length(cameras)
-    for j=1000:2000
-        if i == 1
-            scatter(gnd_detections{i}{j}(:,8),gnd_detections{i}{j}(:,9),8,'MarkerFaceColor',rgb('Red'),'MarkerEdgeColor',rgb('Red'));
-        end
-        if i == 2
-            scatter(gnd_detections{i}{j}(:,8),gnd_detections{i}{j}(:,9),8,'MarkerFaceColor',rgb('Blue'),'MarkerEdgeColor',rgb('Blue'));
-        end
-        if i == 3
-            scatter(gnd_detections{i}{j}(:,8),gnd_detections{i}{j}(:,9),8,'MarkerFaceColor',rgb('Green'),'MarkerEdgeColor',rgb('Green'));
-        end
+    for j=sample_start:(sample_start+sample_size)
+        scatter(gnd_detections{i}{j}(:,8),gnd_detections{i}{j}(:,9),8,'MarkerFaceColor',rgb(colors{i}),'MarkerEdgeColor',rgb(colors{i}));
     end
 end
