@@ -1,6 +1,7 @@
-function [Zs, ys] = appearance_model(n,targs,image,a_sigma,dx,dy,g_candidates)
+function [Zs, ys] = appearance_model(n,targs,image,a_sigma,dx,dy,g_candidates,cameras)
     Zs = cell(length(cameras),1);
     ys = cell(length(cameras),1);
+    feature_vector_size = 3 * 256;
     % TODO sometimes k is not g_candidates^2 (like in the inter-cam case)
     T = g_candidates ^ 2; % Number of training examples for the model of the target (same number for every target)
     for i=1:n

@@ -217,7 +217,7 @@ for update_homo = homo_toggle:1 % DEBUG merely for debug, would never use this i
 
             % Get target models
             % TODO Fixed images to images{i}, and targs to targs_percam{i}
-            [Zs, ys] = appearance_model(n,targs_percam{i},images{i},a_sigma,dx,dy,g_candidates);
+            [Zs, ys] = appearance_model(n,targs_percam{i},images{i},a_sigma,dx,dy,g_candidates,cameras);
             Z_models{i} = Zs; y_models{i} = ys;
             accumulated_Zs{i}{end + 1} = Zs;
             [c_a, w] = appearance(k,n,cands_percam{i},next_images{i},appearance_method,lambda,weights{i},filter,Zs,ys);
