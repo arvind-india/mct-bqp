@@ -36,9 +36,9 @@ end
 % DEBUG I use the the tip of the second white mark of the parkinglot to the right of the white car as another ref point
 figure; hold on;
 colors = {'Red','Blue','Green','Black'};
-img_point_view1 = [48, 232 ; 542, 252];
-img_point_view2 = [832, 204 ; 948, 291];
-img_point_view3 = [422, 560 ; 146, 405];
+img_point_view1 = [48, 232 ];
+img_point_view2 = [832, 204 ];
+img_point_view3 = [422, 560 ];
 
 for i = 1:length(cameras)
     for j = 1:size(img_point_view1,1)
@@ -59,15 +59,11 @@ for i=1:length(cameras)
     end
 end
 
-figure; hold on;
 for i=1:length(cameras)
     drawPoly(ground_plane_regions{i},colors{i},0.5,false); % Draw regions
 end
 
-figure; hold on;
-sample_start = 1000; sample_size = 1000;
-for i=1:length(cameras)
-    for j=sample_start:(sample_start+sample_size)
-        scatter(gnd_detections{i}{j}(:,8),gnd_detections{i}{j}(:,9),8,'MarkerFaceColor',rgb(colors{i}),'MarkerEdgeColor',rgb(colors{i}));
-    end
-end
+d = [-9; 9; 1];
+d3 = [48; 232; 1];
+t2 = H_ucla_inv(homographies{1},d);
+t3 = H_ucla(homographies{1},d3)

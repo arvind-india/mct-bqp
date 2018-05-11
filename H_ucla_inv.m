@@ -1,4 +1,4 @@
-function t = H_ucla(homography, point)
+function t = H_ucla_inv(homography, point)
     x = point(1);
     y = point(2);
     A = homography.K * homography.R;
@@ -8,7 +8,7 @@ function t = H_ucla(homography, point)
     H = [A(:,1:2) -b];
 
     %new_pts = A \ b;
-    new_pts = inv(H) * [-512+x; -288+y; 1];
+    new_pts = H * [x; y; 1];
     %t = [new_pts(1) new_pts(2)];
 
 

@@ -26,7 +26,6 @@ function [homographies, invhomographies] = loadHomographies(filename, dataset, c
         homographies_struct = homographies_struct.cam_param;
         for i=1:length(cameras)
             homographies{i} = homographies_struct(i);
-            invhomographies{i} = inv(homographies{i}.R);
         end
     end
 end
