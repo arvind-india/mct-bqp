@@ -6,5 +6,4 @@
 *.avi
 *.pyc
 *.pdf
-!/mini-campus2_data/*
-!/mct/toy-problems/*
+data/ucla/*
