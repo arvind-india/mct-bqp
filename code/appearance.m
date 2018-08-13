@@ -1,9 +1,10 @@
-function [a, weights] = appearance(k, targs_percam, cands_percam, cands_clones, current_frame, next_frame, sigma, prefilter_sigma, lambda, weights, num_cams, filter, dx, dy)
+function [a, weights, c_a, c_ca] = appearance(k, targs_percam, cands_percam, cands_clones, current_frame, next_frame, sigma, prefilter_sigma, lambda, weights, num_cams, filter, dx, dy)
     a = cell(num_cams,1);
     for c = 1:num_cams
-        c_a = {};
+        c_a = cell(size(targs_percam{c},1),1);
+        c_ca = cell(size(targs_percam{c},1),1);
         for i = 1:size(targs_percam{c},1)
-            fprintf('\t 6.1. Processing "normal" targets for temporal association (KCF)...\n');
+            % fprintf(['\t \t (KCF) Processing "normal" targets for temporal association . Camera: ' num2str(c) ' Target: ' num2str(i) '\n']);
             % Get target
             target = targs_percam{c}(i,4:7);
             cx = target(1);
@@ -26,19 +27,24 @@ function [a, weights] = appearance(k, targs_percam, cands_percam, cands_clones, 
             end
 
             % Gaussian pre-filter
-            dx = cx - crop_rect(1);
-            dy = cy - crop_rect(2);
+            cornerx = cx - crop_rect(1);
+            cornery = cy - crop_rect(2);
             Iblur = imgaussfilt(x, prefilter_sigma);
-            ceildx = cast(dx, 'int32') + 1;
-            ceilbx = cast(dx, 'int32') + size(original_bb,2);
-            ceildy = cast(dy, 'int32') + 1;
-            ceilby = cast(dy, 'int32') + size(original_bb,1);
+            ceildx = cast(cornerx, 'int32') + 1;
+            ceilbx = cast(cornerx, 'int32') + size(original_bb,2);
+            ceildy = cast(cornery, 'int32') + 1;
+            ceilby = cast(cornery, 'int32') + size(original_bb,1);
             Iblur((ceildy:ceilby),(ceildx:ceilbx),:) = original_bb(:,:,:);
             x = Iblur;
 
+            % Use features other than RGB
+            % TODO original_bb -> HOG(original_bb)
+            % TODO x -> HOG(x)
+            % [featureVector,hogVisualization] = extractHOGFeatures(x);
+
             % Generate gaussian labels y
             gsize = [size(x,1) size(x,2)];
-            center = [dx dy];
+            center = [cornerx cornery];
             Sig = [sigma 0; 0 sigma]; % Circular covariance
             y = gauss2d(gsize, Sig , center);
 
@@ -47,11 +53,13 @@ function [a, weights] = appearance(k, targs_percam, cands_percam, cands_clones, 
 
             % Get candidate weights
             z = imcrop(next_frame{c}, patch_coords);
+            % Use features other than RGB
+            % TODO original_bb -> HOG(original_bb)
             responses = detect_patch(alphaf, x, z, sigma);
 
             xstep = bb_width/dx;
             ystep = bb_height/dy;
-            candidate_responses = zeros(k);
+            candidate_responses = zeros(k,1);
             t = 1;
             for gridx=-floor(sqrt(k)/2):floor(sqrt(k)/2)
                 for gridy=-floor(sqrt(k)/2):floor(sqrt(k)/2)
@@ -68,42 +76,54 @@ function [a, weights] = appearance(k, targs_percam, cands_percam, cands_clones, 
                     t = t + 1;
                 end
             end
-            c_a{end+1} = -candidate_responses;
+            c_a{i} = - candidate_responses;
 
 
-            fprintf('\t 6.1. Processing "clone" targets for spatial association (KCF)...\n');
-
+            % fprintf(['\t \t (KCF) Processing "clone" targets for spatial association  Camera: ' num2str(c) ' Target: ' num2str(i) '\n']);
             % Get a patch for this candidate in the frame of the other image (prev)
             candidates_clones = cands_clones{c}{i}(:,1:4);
-            clone_responses = zeros(k);
+            clone_responses = zeros(k, 1);
+            spatial_method = 'bhattacharyya'; % must be kcf or bhattacharyya
             for j=1:k
                 if candidates_clones(j,1) ~= 0
                     ccx = candidates_clones(j,1);
                     ccy = candidates_clones(j,2);
                     cbb_width = candidates_clones(j,3);
                     cbb_height = candidates_clones(j,4);
-                    z = imcrop(current_frame{getOtherCamIdx(c)}, [ccx - cbb_width ccy - cbb_height 3 * cbb_width 3 * cbb_height]);
-                    z_resized = imresize(z, [size(x,1) size(x,2)]);
-                    % Resize the patch to be of the same size as the patch that this was trained on?
-                    % TODO Alternative is to resize the actual weights OR to train a filter on the candidates and resize to the original one
-                    spatial_responses = detect_patch(alphaf, x, z_resized, sigma);
-                    spatial_responses = imresize(spatial_responses, [size(z,1) size(z,2)]);
-                    %clone_responses
+                    if strcmp(spatial_method, 'kcf')
+                        z = imcrop(current_frame{getOtherCamIdx(c)}, [ccx - cbb_width ccy - cbb_height 3 * cbb_width 3 * cbb_height]);
+                        z_resized = imresize(z, [size(x,1) size(x,2)]);
+                        % Resize the patch to be of the same size as the patch that this was trained on?
+                        % TODO Alternative is to resize the actual weights OR to train a filter on the candidates and resize to the original one
+                        spatial_responses = detect_patch(alphaf, x, z_resized, sigma);
+                        spatial_responses = imresize(spatial_responses, [size(z,1) size(z,2)]);
+                        clone_responses(j) = avg(spatial_responses(:));
+                    elseif strcmp(spatial_method, 'bhattacharyya')
+                        % Get the rgb histograms of the original BB
+                        h_x = {histcounts(original_bb(:,:,1), 256, 'Normalization','probability') histcounts(original_bb(:,:,2), 256, 'Normalization','probability') histcounts(original_bb(:,:,3), 256, 'Normalization','probability')};
+                        % Get the rgb histograms of the clone BB
+                        %I1 = [imhist(bb_img1(:,:,1)) imhist(bb_img1(:,:,2)) imhist(bb_img1(:,:,3))];
+                        %I2 = [imhist(bb_img2(:,:,1)) imhist(bb_img2(:,:,2)) imhist(bb_img2(:,:,3))];
+                        bb_z = imcrop(current_frame{getOtherCamIdx(c)}, [ccx ccy cbb_width cbb_height]);
+                        h_z = {histcounts(bb_z(:,:,1), 256, 'Normalization','probability') histcounts(bb_z(:,:,2), 256, 'Normalization','probability') histcounts(bb_z(:,:,3), 256, 'Normalization','probability')};
+                        %distance_metric = 'euclidean'; % emd, cosine, euclidean, chisq, L1
+                        %appearance_score = pdist2(I1',I2',distance_metric);
+                        % Get the sum of the bhattacharyya distances between histograms
+                        clone_responses(j) = 1 / bhattacharyya(h_x, h_z);
+                    end
                 end
             end
-
-            % TODO Recursive filter (use weights)
-
-
-
-
-
-
+            c_ca{i} = clone_responses;
 
         end
-        a{c} = cell2mat(c_a);
-    end
+        a{c} = [cell2mat(c_a) ; cell2mat(c_ca)];
+        % TODO Recursive filter (use weights)
+        if strcmp(filter, 'recursive')
+            a{c} = 0.5 * a{c} + 0.5 * weights{c};
+        end
 
+    end
+    weights = a;
 end
 
 function oi = getOtherCamIdx(idx)
@@ -135,6 +155,39 @@ function responses = detect_patch(alphaf, x, z, sigma)
     r = real(ifft2(alphaf .* fft2(k)));
     responses = gather(r);
 end
+
+function bdist = bhattacharyya(h1, h2)
+    % N.B. both histograms must be normalised
+    % (i.e. bin values lie in range 0->1 and SUM(bins(i)) = 1
+    %       for i = {histogram1, histogram2} )
+    % where each histogram is a 1xN vector
+    % get number of bins
+    % (i.e. dimension 2 from Nx1 inputs)
+    bdist = 0;
+    for j = 1:3
+        histogram1 = h1{j};
+        %histogram1(1) = 0;
+        histogram2 = h2{j};
+        %histogram2(1) = 0;
+        bins = size(histogram1, 2);
+
+        % estimate the bhattacharyya co-efficient
+
+        bcoeff = 0;
+        for i=1:bins
+
+            bcoeff = bcoeff + sqrt(histogram1(i) * histogram2(i));
+
+        end
+
+        % get the distance between the two distributions as follows
+
+        bdist = bdist + sqrt(1 - bcoeff);
+    end
+end
+
+% ================================= FEATURES ==================================================
+
 
 %Image descriptor based on Histogram of Orientated Gradients for gray-level images. This code
 %was developed for the work: O. Ludwig, D. Delgado, V. Goncalves, and U. Nunes, 'Trainable
