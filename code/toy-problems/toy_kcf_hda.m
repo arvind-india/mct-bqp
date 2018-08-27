@@ -90,8 +90,8 @@ x = Iblur;
 I = imread(start_frame);
 I((cast(crop_rect(2), 'int32') + 1:cast(crop_rect(2), 'int32') + size(x,1)),(cast(crop_rect(1), 'int32') + 1:cast(crop_rect(1), 'int32') + size(x,2)),:) = x(:,:,:);
 imshow(I);
-drawBBs([cx cy bb_width bb_height], 'g', 'hda')
-drawBBs(patch_coords, 'w', 'hda')
+drawBBs([cx cy bb_width bb_height], 'g', 2)
+drawBBs(patch_coords, 'w', 2)
 title(start_frame);
 
 gsize = [size(x,1) size(x,2)];
@@ -123,8 +123,8 @@ for track_frame = track_frames
     tracked_img = imcrop(imread(track_frame), [val_x val_y bb_width bb_height]);
     subplot(1,2,2);
     imshow(imread(track_frame));
-    drawBBs([val_x val_y bb_width bb_height], 'r', 'hda')
-    drawBBs(patch_coords, 'w', 'hda')
+    drawBBs([val_x val_y bb_width bb_height], 'r', 2)
+    drawBBs(patch_coords, 'w', 2)
     title(track_frame);
 
     test_cands = 1;

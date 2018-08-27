@@ -126,8 +126,8 @@ for i = cameras
                 %        t = J\b;
                 %    end
                 %end
-                dets{i}(j,3) = xx;
-                dets{i}(j,4) = yy;
+                dets{i}(j,3) = dets{i}(j,3)/ratio;
+                dets{i}(j,4) = dets{i}(j,4)/ratio;
 
                 dets{i}(j,8) = x(1);
                 dets{i}(j,9) = x(2);
@@ -138,6 +138,7 @@ for i = cameras
         end
         dets{i}(:,7) = dets{i}(:,7) + 1;
         scatter(dets{i}(:,8),dets{i}(:,9),10,'MarkerEdgeColor', coo(k), 'MarkerEdgeColor', coo(k));
+        csvwrite(strcat('/home/pedro/mct-bqp/data/ucla/groundtruth/view-GL' ,num2str(i), '.txt'), dets{i});
         dets{i} = (accumarray(dets{i}(:,7),(1:size(dets{i},1)).',[],@(x){dets{i}(x,:)},{}));
         k = k + 1;
     end

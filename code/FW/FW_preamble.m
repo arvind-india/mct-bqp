@@ -4,13 +4,13 @@ function [H,F,Aeq,Beq,labels] = FW_preamble(N,k,a,m,G,b,Alpha,Zeta,n1,n2)
     m = cell2mat(m);
     b = cell2mat(b);
     % Prepare the inputs to the Frank Wolfe
-    Aeq = zeros(N,2*k*N);
-    labels = zeros(2*k*N,1);
+    Aeq = zeros(N,k*N);
+    labels = zeros(k*N,1);
     idx = 1;
     for i=1:N
-        Aeq(i,(i-1)*2*k+1:i*2*k) = ones(2*k,1);
-        labels(idx:(idx+2*k-1)) = ones(2*k,1)*i;
-        idx = idx + 2*k;
+        Aeq(i,(i-1)*k+1:i*k) = ones(k,1);
+        labels(idx:(idx+k-1)) = ones(k,1)*i;
+        idx = idx + k;
     end
     Beq = ones(N,1);
 

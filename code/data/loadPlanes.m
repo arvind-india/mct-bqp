@@ -1,12 +1,20 @@
 function [inplanes, ground_plane_regions, overlap] = loadPlanes(visibility_regions_directory, homographies, cameras, num_cams, dataset)
 
     inplanes = cell(num_cams,1);
-    for i=1:num_cams
-        inplanes{i} = load(strcat(visibility_regions_directory, num2str(cameras{i}),'.mat'));
-        inplanes{i} = inplanes{i}.t;
+    if strcmp(dataset, 'hda')
+        for i=1:num_cams
+            inplanes{i} = load(strcat(visibility_regions_directory, num2str(cameras{i}),'.mat'));
+            inplanes{i} = inplanes{i}.t;
+        end
+        ground_plane_regions = computeGroundPlaneRegions(inplanes, homographies, num_cams, dataset);
+        [overlap, ~, ~] = computeOverlap(ground_plane_regions);
+    elseif strcmp(dataset, 'ucla')
+        ground_plane_regions = cell(num_cams,1);
+        for i=1:num_cams
+            ground_plane_regions{i} = csvread(strcat(visibility_regions_directory, '/region' ,num2str(i), '.txt'));
+        end
+        [overlap, ~, ~] = computeOverlap(ground_plane_regions);
     end
-    ground_plane_regions = computeGroundPlaneRegions(inplanes, homographies, num_cams, dataset);
-    [overlap, ~, ~] = computeOverlap(ground_plane_regions);
 end
 
 function homoplanes = computeGroundPlaneRegions(inplanes, homographies, num_cameras, dataset)
@@ -74,14 +82,7 @@ function [pixelplane_overlap, kmat, mmat] = computeOverlap(homoplanes)
 		end
 	else
 		% TODO Get all possible combinations of pairs of regions and compute their overlaps and store them and then compute the overlaps on them
-		combs = combnk(1:3,2);
-
-
-
-
-
-
-
+		% combs = combnk(1:3,2);
 
 	end
 end

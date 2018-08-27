@@ -10,5 +10,5 @@ function  [targs, targs_percam] = getTargets(f, detection_frames, gnd_detections
         end
     end
     targs_percam = (accumarray(targs(:,1),(1:size(targs,1)).',[],@(x){targs(x,:)},{}));
-    targs_percam = targs_percam(~cellfun('isempty',targs_percam));  
+    targs_percam = targs_percam(~cellfun('isempty',targs_percam));
 end

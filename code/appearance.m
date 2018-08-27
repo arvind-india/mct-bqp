@@ -1,4 +1,5 @@
-function [a, weights, c_a, c_ca] = appearance(k, targs_percam, cands_percam, cands_clones, current_frame, next_frame, sigma, prefilter_sigma, lambda, weights, num_cams, filter, dx, dy)
+function [a, weights, c_a, c_ca] = appearance(k, targs_percam, cands_percam, cands_clones, current_frame, next_frame, sigma, prefilter_sigma, lambda, weights, num_cams, filter, dx, dy, dataset)
+    use_GPU = 0;
     a = cell(num_cams,1);
     for c = 1:num_cams
         c_a = cell(size(targs_percam{c},1),1);
@@ -6,7 +7,11 @@ function [a, weights, c_a, c_ca] = appearance(k, targs_percam, cands_percam, can
         for i = 1:size(targs_percam{c},1)
             % fprintf(['\t \t (KCF) Processing "normal" targets for temporal association . Camera: ' num2str(c) ' Target: ' num2str(i) '\n']);
             % Get target
-            target = targs_percam{c}(i,4:7);
+            if strcmp(dataset, 'hda')
+                target = targs_percam{c}(i,4:7);
+            elseif strcmp(dataset, 'ucla')
+                target = targs_percam{c}(i,3:6);
+            end
             cx = target(1);
             cy = target(2);
             bb_width = target(3);
@@ -19,12 +24,7 @@ function [a, weights, c_a, c_ca] = appearance(k, targs_percam, cands_percam, can
             original_bb = imcrop(current_frame{c}, target);
             patch_coords = [cx - bb_width cy - bb_height 3 * bb_width 3 * bb_height];
             [x, crop_rect] = imcrop(next_frame{c}, patch_coords);
-            if crop_rect(1) < 0
-                crop_rect(1) = 0;
-            end
-            if crop_rect(2) < 0
-                crop_rect(2) = 0;
-            end
+            crop_rect(crop_rect < 0) = 0;
 
             % Gaussian pre-filter
             cornerx = cx - crop_rect(1);
@@ -49,13 +49,13 @@ function [a, weights, c_a, c_ca] = appearance(k, targs_percam, cands_percam, can
             y = gauss2d(gsize, Sig , center);
 
             % Train
-            alphaf = train(x, y, sigma, lambda);
+            alphaf = train(x, y, sigma, lambda, use_GPU);
 
             % Get candidate weights
             z = imcrop(next_frame{c}, patch_coords);
             % Use features other than RGB
             % TODO original_bb -> HOG(original_bb)
-            responses = detect_patch(alphaf, x, z, sigma);
+            responses = detect_patch(alphaf, x, z, sigma, use_GPU);
 
             xstep = bb_width/dx;
             ystep = bb_height/dy;
@@ -69,7 +69,7 @@ function [a, weights, c_a, c_ca] = appearance(k, targs_percam, cands_percam, can
                     % Convert candidate locations in the image to patch locations
                     resp_cx = k_cx - crop_rect(1);
                     resp_cy = k_cy - crop_rect(2);
-                    if k_cx > 0 && k_cy > 0
+                    if k_cx > 0 && k_cy > 0 && k_cx < 1024 && k_cy < 576
                         % candidate_responses(gridy + floor(sqrt(k)/2) + 1, gridx + floor(sqrt(k)/2) + 1) = responses(cast(resp_cy, 'int32'), cast(resp_cx, 'int32'));
                         candidate_responses(t) = responses(cast(resp_cy, 'int32'), cast(resp_cx, 'int32'));
                     end
@@ -82,7 +82,7 @@ function [a, weights, c_a, c_ca] = appearance(k, targs_percam, cands_percam, can
             % fprintf(['\t \t (KCF) Processing "clone" targets for spatial association  Camera: ' num2str(c) ' Target: ' num2str(i) '\n']);
             % Get a patch for this candidate in the frame of the other image (prev)
             candidates_clones = cands_clones{c}{i}(:,1:4);
-            clone_responses = zeros(k, 1);
+            clone_responses = ones(k, 1) * 9999999;
             spatial_method = 'bhattacharyya'; % must be kcf or bhattacharyya
             for j=1:k
                 if candidates_clones(j,1) ~= 0
@@ -130,31 +130,6 @@ function oi = getOtherCamIdx(idx)
   oi = rem(idx,2) + 1; % TODO This is a dirty hack to get 1 if 2 or 2 if 1
 end
 
-function k = kernel_correlation(x1, x2, sigma)
-    c = ifft2(sum(conj(fft2(x1)) .* fft2(x2), 3));
-    a = x1(:);
-    b = x2(:);
-    d = (a')*a + (b')*b - 2*c;
-    k = exp(-1 / sigma^2 * abs(d) / numel(d));
-end
-
-function alphaf = train(x, y, sigma, lambda)
-    x = cast(x, 'double');
-    x = gpuArray(x);
-    k = kernel_correlation(x, x, sigma);
-    a = fft2(y) ./ (fft2(k) + lambda);
-    alphaf = gather(a);
-end
-
-function responses = detect_patch(alphaf, x, z, sigma)
-    x = cast(x, 'double');
-    z = cast(z, 'double');
-    x = gpuArray(x);
-    z = gpuArray(z);
-    k = kernel_correlation(z, x, sigma);
-    r = real(ifft2(alphaf .* fft2(k)));
-    responses = gather(r);
-end
 
 function bdist = bhattacharyya(h1, h2)
     % N.B. both histograms must be normalised
@@ -186,7 +161,53 @@ function bdist = bhattacharyya(h1, h2)
     end
 end
 
-% ================================= FEATURES ==================================================
+function im = prefilter(x, original_bb, cdx, cdy, sigma)
+    Iblur = imgaussfilt(x, sigma);
+    ceildx = cast(cdx, 'int32') + 1;
+    ceilbx = cast(cdx, 'int32') + size(original_bb,2);
+    ceildy = cast(cdy, 'int32') + 1;
+    ceilby = cast(cdy, 'int32') + size(original_bb,1);
+    Iblur((ceildy:ceilby),(ceildx:ceilbx),:) = original_bb(:,:,:);
+    im = Iblur;
+end
+
+function k = kernel_correlation(x1, x2, sigma)
+    c = ifft2(sum(conj(fft2(x1)) .* fft2(x2), 3));
+    a = x1(:);
+    b = x2(:);
+    d = (a')*a + (b')*b - 2*c;
+    k = exp(-1 / sigma^2 * abs(d) / numel(d));
+end
+
+function alphaf = train(x, y, sigma, lambda, use_GPU)
+    x = cast(x, 'double');
+    if use_GPU
+        x = gpuArray(x);
+    end
+    k = kernel_correlation(x, x, sigma);
+    a = fft2(y) ./ (fft2(k) + lambda);
+    if use_GPU
+        alphaf = gather(a);
+    else
+        alphaf = a;
+    end
+end
+
+function responses = detect_patch(alphaf, x, z, sigma, use_GPU)
+    x = cast(x, 'double');
+    z = cast(z, 'double');
+    if use_GPU
+        x = gpuArray(x);
+        z = gpuArray(z);
+    end
+    k = kernel_correlation(z, x, sigma);
+    r = real(ifft2(alphaf .* fft2(k)));
+    if use_GPU
+        responses = gather(r);
+    else
+        responses = r;
+    end
+end
 
 
 %Image descriptor based on Histogram of Orientated Gradients for gray-level images. This code
@@ -194,10 +215,11 @@ end
 %Classifier-Fusion Schemes: An Application To Pedestrian Detection,' In: 12th International IEEE
 %Conference On Intelligent Transportation Systems, 2009, St. Louis, 2009. V. 1. P. 432-437. In
 %case of publication with this code, please cite the paper above.
-function h = HOG(Im)
-    nwin_x = 3;%set here the number of HOG windows per bound box
-    nwin_y = 3;
-    B=9;%set here the number of histogram bins
+
+function hmat = HOG(Im,nwin_x,nwin_y, B)
+    % nwin_x=77;%set here the number of HOG windows per bound box
+    % nwin_y=45;
+    % B=31;%set here the number of histogram bins
     [L,C]=size(Im); % L num of lines ; C num of columns
     H=zeros(nwin_x*nwin_y*B,1); % column vector with zeros
     m=sqrt(L/2);
@@ -216,6 +238,7 @@ function h = HOG(Im)
     grad_yu = imfilter(double(Im),hy);
     angles=atan2(grad_yu,grad_xr);
     magnit=((grad_yu.^2)+(grad_xr.^2)).^.5;
+    hmat = zeros(nwin_y,nwin_x,B);
     for n=0:nwin_y-1
         for m=0:nwin_x-1
             cont=cont+1;
@@ -239,6 +262,7 @@ function h = HOG(Im)
 
             H2=H2/(norm(H2)+0.01);
             H((cont-1)*B+1:cont*B,1)=H2;
+            hmat(n+1,m+1,:) = H2;
         end
     end
 end

@@ -19,5 +19,5 @@ function val = gaussC(x,y,sigma,center)
     else
         exponent = ((x-xc).^2)/(2*sigma(1,1).^2) + ((y-yc).^2)/(2*sigma(2,2).^2) + ((x-xc)*(y-yc))/(2*sigma(1,2).^2 + 2*sigma(2,1).^2);
     end
-    val = 1*exp(-exponent);
+    val = exp(-exponent);
 end

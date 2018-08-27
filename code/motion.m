@@ -32,7 +32,7 @@ function [m, targs_speed] = motion(k, targs_speed, targs_percam, cands_percam, g
             c_m{i} = - candidate_gaussian_weights;
 
             candidates_clones = cands_clones{c}{i}(:,5:6);
-            clone_responses = zeros(k, 1);
+            clone_responses = ones(k, 1) * 9999999;
             for j=1:k
                 if candidates_clones(j,1) ~= 0
                     p1 = targs_percam{c}(i,8:9);
@@ -42,7 +42,8 @@ function [m, targs_speed] = motion(k, targs_speed, targs_percam, cands_percam, g
                     clone_responses(j) = sum(abs(v1 - v2)) + sqrt((p1(1)-p2(1))^2 + (p1(2)-p2(2))^2);
                 end
             end
-            c_cm{i} = clone_responses;
+            % TODO Check this
+            c_cm{i} =  clone_responses;
 
 
         end

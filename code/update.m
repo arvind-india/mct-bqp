@@ -1,20 +1,24 @@
-fprintf('\t 12.Updating motion models...\n');
-for i=1:N
-    for j=1:k
-        if optimization_results(j,i) == 1
-            motion_models{i}(1:2) = cands{i}(j,5:6); % Update Position
-            motion_models{i}(3:4) = (cands{i}(j,5:6) - targs(i,8:9))/dt; % Update Speed dt is 1/fps
+function [targs_speed, tracks] = update(targs_speed, targs_percam, tracks, best_temporal_candidates, num_cams, dt)
+
+    fprintf('\t 11. Updating motion models \n');
+    for c = 1:num_cams
+        for ts = 1:size(targs_speed{c},2)
+            tx = targs_percam{c}(ts,8);
+            ty = targs_percam{c}(ts,9);
+            best_cx = best_temporal_candidates{c}{ts}(5);
+            best_cy = best_temporal_candidates{c}{ts}(6);
+            targs_speed{c}{ts}(1) = (best_cx - tx)/dt;
+            targs_speed{c}{ts}(2) = (best_cy - ty)/dt;
         end
     end
-end
-%---------------------------------------------------------------------------
-fprintf('\t 13.Saving results, using results as next targets...\n');
-for i=1:N
-    for j=1:k
-        if optimization_results(j,i) == 1
-            tracklets{end+1} = [targs(i,:); targs(i,1:3) cands{i}(j,:)];
-            targs(i,4:9) = cands{i}(j,:);
+    %---------------------------------------------------------------------------
+    fprintf('\t 12. Saving results, using results as next targets \n');
+    for c = 1:num_cams
+        % Increment frame
+        targs_percam{c}(:,2) = targs_percam{c}(:,2) + 1;
+        for ts = 1:size(targs_percam{c},1)
+            targs_percam{c}(ts,4:9) = best_temporal_candidates{c}{ts};
+            tracks{c}{end+1} = [targs_percam{c}(ts,4:9) ; best_temporal_candidates{c}{ts}];
         end
     end
-end
 end
