@@ -57,17 +57,13 @@ tic
 if strcmp('iterations', option)
   for reps = 1:N
       % "Fix" H1 and compute new H2 with some noise
-      W_r = wgn(size(n_cam2_gpregion,1),size(n_cam2_gpregion,2),power);
-      W_d = wgn(size(n_cam1_gpdetections,2),size(n_cam1_gpdetections,1),power);
       regdet_mat1 = vertcat(repmat(cam2_region,rho_r,1), repmat(cam2_camdetections',rho_m,1));
-      regdet_mat2 = vertcat(repmat(n_cam2_gpregion + W_r,rho_r,1), repmat(n_cam1_gpdetections' + W_d,rho_m,1));
+      regdet_mat2 = vertcat(repmat(n_cam2_gpregion,rho_r,1), repmat(n_cam1_gpdetections',rho_m,1));
       n_H2 = solve_homography(regdet_mat1, regdet_mat2, homog_solver);
 
       % "Fix" H2 and compute H1 with some noise
-      W_r = wgn(size(n_cam1_gpregion,1),size(n_cam1_gpregion,2),power);
-      W_d = wgn(size(n_cam2_gpdetections,2),size(n_cam2_gpdetections,1),power);
       regdet_mat1 = vertcat(repmat(cam1_region,rho_r,1), repmat(cam1_camdetections',rho_m,1));
-      regdet_mat2 = vertcat(repmat(n_cam1_gpregion + W_r, rho_r,1), repmat(n_cam2_gpdetections' + W_d,rho_m,1));
+      regdet_mat2 = vertcat(repmat(n_cam1_gpregion, rho_r,1), repmat(n_cam2_gpdetections',rho_m,1));
       n_H1 = solve_homography(regdet_mat1, regdet_mat2, homog_solver);
 
       % Compute new cam2 ground plane regions and detections with n_H2
@@ -93,15 +89,11 @@ elseif strcmp('delta', option)
   d = 0;
   while d < delta
       % "Fix" H1 and compute new H2 with some noise
-      W_r = wgn(size(n_cam2_gpregion,1),size(n_cam2_gpregion,2),power);
-      W_d = wgn(size(n_cam1_gpdetections,2),size(n_cam1_gpdetections,1),power);
       regdet_mat1 = vertcat(repmat(cam2_region,rho_r,1), repmat(cam2_camdetections',rho_m,1));
       regdet_mat2 = vertcat(repmat(n_cam2_gpregion,rho_r,1), repmat(n_cam1_gpdetections',rho_m,1));
       n_H2 = solve_homography(regdet_mat1, regdet_mat2, homog_solver);
 
       % "Fix" H2 and compute H1 with some noise
-      W_r = wgn(size(n_cam1_gpregion,1),size(n_cam1_gpregion,2),power);
-      W_d = wgn(size(n_cam2_gpdetections,2),size(n_cam2_gpdetections,1),power);
       regdet_mat1 = vertcat(repmat(cam1_region,rho_r,1), repmat(cam1_camdetections',rho_m,1));
       regdet_mat2 = vertcat(repmat(n_cam1_gpregion, rho_r,1), repmat(n_cam2_gpdetections',rho_m,1));
       n_H1 = solve_homography(regdet_mat1, regdet_mat2, homog_solver);
@@ -166,4 +158,56 @@ function t = H(matrix, point)
     t(1) = t(1)/t(3);
     t(2) = t(2)/t(3);
     t = t(1:2);
+end
+
+function [pixelplane_overlap, kmat, mmat] = computeOverlap(homoplanes)
+	% Given homoplanes, compute their intersections
+	% Inputs
+	%  homoplanes: List of homoplanes vertices
+
+	% Output
+	%  pixelplane_overlap: all intersections (i.e points) of the regions
+	%  kmat: points from the first camera region inside the second region
+	%  mmat: points from the second camera region insde the first region
+	if length(homoplanes) == 2
+		X = poly2poly(homoplanes{1}',homoplanes{2}');
+		intersect = poly2ccw(X');
+		if ~isempty(intersect)
+			% Points from region 1 inside region 2
+		    kinside_points = {};
+		    for k=1:size(homoplanes{1},1)
+		        if polyin(homoplanes{1}(k,:),homoplanes{2})
+		            kinside_points{end+1} = [k homoplanes{1}(k,:)];
+		        end
+		    end
+			% Points from region 2 inside region 1
+		    minside_points = {};
+		    for m=1:size(homoplanes{2},1)
+		        if polyin(homoplanes{2}(m,:),homoplanes{1})
+		            minside_points{end+1} = [m homoplanes{2}(m,:)];
+		        end
+		    end
+		    kmat = cell2mat(kinside_points');
+		    mmat = cell2mat(minside_points');
+
+		    if ~isempty(mmat) && ~isempty(kmat)
+		        region = vertcat(kmat(:,2:3),mmat(:,2:3),intersect(:,1:2));
+		    elseif isempty(mmat)
+		        region = vertcat(kmat(:,2:3),intersect(:,1:2));
+		    elseif isempty(kmat)
+		        region = vertcat(mmat(:,2:3),intersect(:,1:2));
+		    else
+		        region = intersect(:,1:2);
+		    end
+
+		    new_region = [region ; region(1,:)];
+		    pixelplane_overlap = poly2ccw(new_region);
+		else
+			pixelplane_overlap = 0;
+		end
+	else
+		% TODO Get all possible combinations of pairs of regions and compute their overlaps and store them and then compute the overlaps on them
+		% combs = combnk(1:3,2);
+
+	end
 end

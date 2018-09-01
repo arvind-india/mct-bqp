@@ -1,31 +1,52 @@
-function [metrics,tracks,gnd_tracks] = evaluate(ground_plane_regions,ground_plane_regions_adjusted,gnd_detections,tracklets,start_frames)
-    % ground truth: gnd_detections
-    % tracklets: tracks
+function correct_tracks = evaluate(f, gnd_detections, tracks, people, start_frames, num_cams, overlap)
+    % Show the original tracks
+    correct_tracks = cell(num_cams,1);
+    for c = 1:num_cams
+        correct_tracks{c} = cell(max(people) + 1,1); % + 1 cuz matlab
+    end
+    colors = {{'Red', 'Aquamarine'} {'Green', 'Blue'}};
+    figure;
+    hold on;
+    for c = 1:num_cams
+        dets = cell2mat(gnd_detections{c}(start_frames(c): start_frames(c) + (f-1),:));
+        for p = 1:length(people)
+            dx = dets(dets(:,2) == people(p),:);
+            plot(dx(:,8),dx(:,9),'Color',rgb(colors{c}{p}),'Marker','s');
+            for t = 1:(size(dx,1)-1)
+                correct_tracks{c}{people(p) + 1}{end+1} = [[dx(t,7) dx(t,3:6) dx(t,8:9)] ; [dx(t+1,7) dx(t+1,3:6) dx(t+1,8:9)]];
+            end
+        end
 
-    % Merge tracks
-    tracks = cell(2,1);
-    for i = 1:length(tracklets)
-        for k = 1:size(tracklets{i},1)
-            if tracklets{i}(1,1) == 1
-                tracks{1}{end+1} = [tracklets{i}(k,1) tracklets{i}(k,8:9)];
-            else
-                tracks{2}{end+1} = [tracklets{i}(k,1) tracklets{i}(k,8:9)];
+    end
+    colors = {{'Orange', 'Turquoise'} {'Lime', 'Navy'}};
+    for c = 1:num_cams
+        for p = 1:length(people)
+            tr = tracks{c}{people(p)+1};
+            for frame = 1:size(tr,1)
+                gr = tr{frame};
+                plot(gr(:,6),gr(:,7),'Color',rgb(colors{c}{p}),'Marker','X');
             end
         end
     end
-    tracks{1} = cell2mat(transpose(tracks{1}));
-    tracks{2} = cell2mat(transpose(tracks{2}));
-    gnd_tracks = cell(2,1); metrics = cell(2,1);
-    for id = 1:2
-        for j = 1:2
-            frame = start_frames(id) + j;
-            for k = 1:size(gnd_detections{id}{frame},1)
-                gnd_tracks{id}{end+1} = [gnd_detections{id}{frame}(k,1) gnd_detections{id}{frame}(k,8:9)];
+    % Compute error
+    cae_error = [0.0 0.0];
+    for c = 1:num_cams
+        for ppl = 1:size(correct_tracks{c},1)
+            if isempty(correct_tracks{c}{ppl}) == 0
+                for fr = 1:size(correct_tracks{c}{ppl},1)
+                    correct = correct_tracks{c}{ppl}{fr};
+                    pred = tracks{c}{ppl}{fr};
+                    cae_error = cae_error + sum(abs(correct(:,6:7) - pred(:,6:7)));
+                end
             end
         end
-        gnd_tracks{id} = cell2mat(transpose(gnd_tracks{id}));
     end
-    for id = 1:2
-        metrics{id} = abs(tracks{id}(:,2:3) - gnd_tracks{id}(:,2:3));
-    end
+    cae_error = sum(cae_error);
+
+
+    drawPoly(overlap, 'Black', 0.5, false);
+    xlabel('x(m)'); ylabel('y(m)');
+    legend('Cam 1 - GT 1','Cam 1 - GT 2','Cam 2 - GT 1','Cam 2 - GT 2', 'Cam 1 - TR 1', 'Cam 1 - TR 2','Cam 2 -- TR 1','Cam 2 -- TR 2', 'Overlap Region')
+    title(['Ground-truth and tracks on the ground plane. Cumulative Average Error: ' num2str(cae_error)]);
+
 end

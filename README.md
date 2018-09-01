@@ -25,4 +25,4 @@ Working on Ubuntu 16.04, 16GB of RAM, CUDA 8.0 and GTX 1080 Ti 11 Gb.
 
 * *UCLA CAMPUS* dataset can be found [here](https://bitbucket.org/merayxu/multiview-object-tracking-dataset) or [here](https://drive.google.com/drive/folders/1_uUvdMRjd6a0xXLX67UsRhcv7wND8PZ0?usp=sharing), the second one is provided.
 
-* Any questions, contact me (pedro.f.abreu@ist.utl.pt) or post an issue.
+* Any questions post an issue.

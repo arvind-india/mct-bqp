@@ -2,9 +2,9 @@ function b = bounds(k, n, cands_percam, cands_clones, ground_plane_regions, rewa
     b = cell(num_cams,1);
     % Normal section
     for c = 1:num_cams
-        c_b = zeros(k,n);
-        b_clones = zeros(k,n);
-        for i=1:n
+        c_b = zeros(k,size(cands_percam{c},2));
+        b_clones = zeros(k,size(cands_percam{c},2));
+        for i=1:size(cands_percam{c},2)
             for j=1:k
                 candidate = cands_percam{c}{i}(j,5:6);
                 if polyin(candidate,ground_plane_regions{c})
@@ -16,7 +16,7 @@ function b = bounds(k, n, cands_percam, cands_clones, ground_plane_regions, rewa
             end
         end
         % Clone sections
-        for i=1:n
+        for i=1:size(cands_percam{c},2)
             for j=1:k
                 candidate = cands_clones{c}{i}(j,5:6);
                 if candidate(1) ~= 0 && candidate(2) ~= 0 && polyin(candidate,ground_plane_regions{c})

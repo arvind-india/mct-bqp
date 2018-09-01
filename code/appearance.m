@@ -1,7 +1,9 @@
-function [a, weights, c_a, c_ca] = appearance(k, targs_percam, cands_percam, cands_clones, current_frame, next_frame, sigma, prefilter_sigma, lambda, weights, num_cams, filter, dx, dy, dataset)
+function [a, weights, c_a, c_ca, af] = appearance(k, targs_percam, cands_percam, cands_clones, current_frame, next_frame, sigma, prefilter_sigma, lambda, weights, num_cams, filter, dx, dy, dataset, prev_alphaf)
     use_GPU = 0;
     a = cell(num_cams,1);
+    af = cell(num_cams,1);
     for c = 1:num_cams
+        af{c} = cell(size(targs_percam{c},1),1);
         c_a = cell(size(targs_percam{c},1),1);
         c_ca = cell(size(targs_percam{c},1),1);
         for i = 1:size(targs_percam{c},1)
@@ -27,36 +29,36 @@ function [a, weights, c_a, c_ca] = appearance(k, targs_percam, cands_percam, can
             crop_rect(crop_rect < 0) = 0;
 
             % Gaussian pre-filter
-            cornerx = cx - crop_rect(1);
-            cornery = cy - crop_rect(2);
-            Iblur = imgaussfilt(x, prefilter_sigma);
-            ceildx = cast(cornerx, 'int32') + 1;
-            ceilbx = cast(cornerx, 'int32') + size(original_bb,2);
-            ceildy = cast(cornery, 'int32') + 1;
-            ceilby = cast(cornery, 'int32') + size(original_bb,1);
-            Iblur((ceildy:ceilby),(ceildx:ceilbx),:) = original_bb(:,:,:);
-            x = Iblur;
+            cdx = cx - crop_rect(1);
+            cdy = cy - crop_rect(2);
 
-            % Use features other than RGB
-            % TODO original_bb -> HOG(original_bb)
-            % TODO x -> HOG(x)
-            % [featureVector,hogVisualization] = extractHOGFeatures(x);
-
+            x = prefilter(x, original_bb, cdx, cdy, prefilter_sigma);
             % Generate gaussian labels y
+            cdx = cdx + bb_width/2;
+            cdy = cdy + bb_height/2;
             gsize = [size(x,1) size(x,2)];
-            center = [cornerx cornery];
-            Sig = [sigma 0; 0 sigma]; % Circular covariance
+            center = [cdy cdx];
+            Sig = [sigma(c) 0; 0 sigma(c)]; % Circular covariance
             y = gauss2d(gsize, Sig , center);
-
+            y = y./sum(y(:));
             % Train
-            alphaf = train(x, y, sigma, lambda, use_GPU);
+            alphaf = train(x, y, sigma(c), lambda(c), use_GPU);
 
             % Get candidate weights
             z = imcrop(next_frame{c}, patch_coords);
+
+            % Update the weights with linear interpolation
+            % TODO Henriques says they interpolate x? I'm sceptical of this but ok
+            % TODO Recursive filter (use weights)
+            if prev_alphaf ~= -1 && strcmp(filter, 'recursive') % Not first tracking
+                alphaf = 0.5 * alphaf + 0.5 * prev_alphaf{c}{i}
+            end
+            af{c}{i} = alphaf;
             % Use features other than RGB
             % TODO original_bb -> HOG(original_bb)
-            responses = detect_patch(alphaf, x, z, sigma, use_GPU);
+            responses = detect_patch(alphaf, x, z, sigma(c), use_GPU);
 
+            % TODO Move this out of here (it should be unified with how sampleCandidates does it)
             xstep = bb_width/dx;
             ystep = bb_height/dy;
             candidate_responses = zeros(k,1);
@@ -67,16 +69,16 @@ function [a, weights, c_a, c_ca] = appearance(k, targs_percam, cands_percam, can
                     k_cy = cy + gridy * ystep + 1;
 
                     % Convert candidate locations in the image to patch locations
-                    resp_cx = k_cx - crop_rect(1);
-                    resp_cy = k_cy - crop_rect(2);
-                    if k_cx > 0 && k_cy > 0 && k_cx < 1024 && k_cy < 576
+                    resp_cx = k_cx - crop_rect(1) + bb_width/2;
+                    resp_cy = k_cy - crop_rect(2) + bb_height/2;
+                    if resp_cx > 0 && resp_cy > 0 && resp_cx < size(responses,2) && resp_cy < size(responses,1)
                         % candidate_responses(gridy + floor(sqrt(k)/2) + 1, gridx + floor(sqrt(k)/2) + 1) = responses(cast(resp_cy, 'int32'), cast(resp_cx, 'int32'));
                         candidate_responses(t) = responses(cast(resp_cy, 'int32'), cast(resp_cx, 'int32'));
                     end
                     t = t + 1;
                 end
             end
-            c_a{i} = - candidate_responses;
+            c_a{i} = - candidate_responses./abs(max(candidate_responses));
 
 
             % fprintf(['\t \t (KCF) Processing "clone" targets for spatial association  Camera: ' num2str(c) ' Target: ' num2str(i) '\n']);
@@ -95,7 +97,7 @@ function [a, weights, c_a, c_ca] = appearance(k, targs_percam, cands_percam, can
                         z_resized = imresize(z, [size(x,1) size(x,2)]);
                         % Resize the patch to be of the same size as the patch that this was trained on?
                         % TODO Alternative is to resize the actual weights OR to train a filter on the candidates and resize to the original one
-                        spatial_responses = detect_patch(alphaf, x, z_resized, sigma);
+                        spatial_responses = detect_patch(alphaf, x, z_resized, sigma(c));
                         spatial_responses = imresize(spatial_responses, [size(z,1) size(z,2)]);
                         clone_responses(j) = avg(spatial_responses(:));
                     elseif strcmp(spatial_method, 'bhattacharyya')
@@ -117,11 +119,6 @@ function [a, weights, c_a, c_ca] = appearance(k, targs_percam, cands_percam, can
 
         end
         a{c} = [cell2mat(c_a) ; cell2mat(c_ca)];
-        % TODO Recursive filter (use weights)
-        if strcmp(filter, 'recursive')
-            a{c} = 0.5 * a{c} + 0.5 * weights{c};
-        end
-
     end
     weights = a;
 end

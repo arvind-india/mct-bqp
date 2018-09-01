@@ -1,15 +1,16 @@
-function [G, groups, dendrograms] = grouping(N, ns, k, groups, targs_percam, cands_percam, f, G_sigma, num_cams, comfort_distance, dataset, gamma)
+function [G, groups, dendrograms] = grouping(N, ns, k, groups, targs_percam, cands_percam, f, G_sigma, num_cams, comfort_distance, dataset, cluster_update_freq, clustering, Gamma)
     % NOTE Initializing clusters every n frames
-    if rem(f-1,gamma) == 0
+    if rem(f-1,cluster_update_freq) == 0
         dendrograms = cell(num_cams,1);
         groups = cell(num_cams,1);
         for i = 1:num_cams
+            if size(targs_percam{i},1) ~= 1
                 Y = pdist(targs_percam{i}(:,8:9));
-                clustering = 'single';
                 Z = linkage(Y, clustering);
                 C = cluster(Z, 'cutoff', comfort_distance, 'criterion', 'distance');
                 groups{i} = C;
                 dendrograms{i} = Z;
+            end
         end
     end
     %---------------------------------------------------------------------------
@@ -47,6 +48,8 @@ function [G, groups, dendrograms] = grouping(N, ns, k, groups, targs_percam, can
             end
         end
     end
+
+    T = Gamma * T;
 
     % Augment G
     t = zeros(size(T) * 2);
