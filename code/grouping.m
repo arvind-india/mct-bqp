@@ -1,4 +1,4 @@
-function [G, groups, dendrograms] = grouping(N, ns, k, groups, targs_percam, cands_percam, f, G_sigma, num_cams, comfort_distance, dataset, cluster_update_freq, clustering, Gamma)
+function [G, groups, dendrograms] = grouping(N, ns, k, groups, targs_percam, cands_percam, f, G_sigma, num_cams, comfort_distance, dataset, cluster_update_freq, clustering, Gamma, dendrograms)
     % NOTE Initializing clusters every n frames
     if rem(f-1,cluster_update_freq) == 0
         dendrograms = cell(num_cams,1);

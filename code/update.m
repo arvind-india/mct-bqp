@@ -1,4 +1,4 @@
-function [targs_speed, tracks] = update(targs_speed, targs_percam, tracks, best_temporal_candidates, num_cams, dt, dataset)
+function [targs_percam, targs_speed, tracks] = update(targs_speed, targs_percam, tracks, best_temporal_candidates, num_cams, dt, dataset)
 
     fprintf('\t 11. Updating motion models \n');
     for c = 1:num_cams

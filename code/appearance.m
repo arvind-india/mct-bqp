@@ -1,4 +1,4 @@
-function [a, weights, c_a, c_ca, af] = appearance(k, targs_percam, cands_percam, cands_clones, current_frame, next_frame, sigma, prefilter_sigma, lambda, weights, num_cams, filter, dx, dy, dataset, prev_alphaf)
+function [a, weights, c_a, c_ca, af] = appearance(k, targs_percam, cands_percam, cands_clones, current_frame, next_frame, sigma, prefilter_sigma, lambda, weights, num_cams, filter, dx, dy, dataset, prev_alphaf, features)
     use_GPU = 0;
     a = cell(num_cams,1);
     af = cell(num_cams,1);
@@ -33,16 +33,34 @@ function [a, weights, c_a, c_ca, af] = appearance(k, targs_percam, cands_percam,
             cdy = cy - crop_rect(2);
 
             x = prefilter(x, original_bb, cdx, cdy, prefilter_sigma);
+
+            % Converting x to HOG
+            if strcmp(features, 'HOG')
+                nwin_x = ceil(size(x,2)/4);
+                nwin_y = ceil(size(x,1)/4);
+                hogx = HOG(x,nwin_x,nwin_y,31);
+            end
+
+
             % Generate gaussian labels y
             cdx = cdx + bb_width/2;
             cdy = cdy + bb_height/2;
-            gsize = [size(x,1) size(x,2)];
-            center = [cdy cdx];
+            if strcmp(features, 'HOG')
+                gsize = [size(hogx,1) size(hogx,2)];
+                center = [cdx/4 cdy/4];
+            else
+                gsize = [size(x,1) size(x,2)];
+                center = [cdy cdx];
+            end
             Sig = [sigma(c) 0; 0 sigma(c)]; % Circular covariance
             y = gauss2d(gsize, Sig , center);
             y = y./sum(y(:));
             % Train
-            alphaf = train(x, y, sigma(c), lambda(c), use_GPU);
+            if strcmp(features, 'HOG')
+                alphaf = train(hogx, y, sigma(c), lambda(c), use_GPU);
+            else
+                alphaf = train(x, y, sigma(c), lambda(c), use_GPU);
+            end
 
             % Get candidate weights
             z = imcrop(next_frame{c}, patch_coords);
@@ -50,13 +68,22 @@ function [a, weights, c_a, c_ca, af] = appearance(k, targs_percam, cands_percam,
             % Update the weights with linear interpolation
             % TODO Henriques says they interpolate x? I'm sceptical of this but ok
             % TODO Recursive filter (use weights)
-            if prev_alphaf ~= -1 && strcmp(filter, 'recursive') % Not first tracking
-                alphaf = 0.5 * alphaf + 0.5 * prev_alphaf{c}{i}
+            if isempty(prev_alphaf) == 0 && strcmp(filter, 'recursive') % Not first tracking
+                alphaf = 0.5 * alphaf + 0.5 * prev_alphaf{c}{i};
             end
             af{c}{i} = alphaf;
             % Use features other than RGB
             % TODO original_bb -> HOG(original_bb)
-            responses = detect_patch(alphaf, x, z, sigma(c), use_GPU);
+            if strcmp(features, 'HOG')
+                nwin_x = ceil(size(z,2)/4);
+                nwin_y = ceil(size(z,1)/4);
+                hogz = HOG(z,nwin_x,nwin_y,31);
+                responses = detect_patch(alphaf, hogx, hogz, sigma(c), use_GPU);
+            else
+                responses = detect_patch(alphaf, x, z, sigma(c), use_GPU);
+            end
+
+            % responses = detect_patch(alphaf, x, z, sigma(c), use_GPU);
 
             % TODO Move this out of here (it should be unified with how sampleCandidates does it)
             xstep = bb_width/dx;
@@ -71,6 +98,11 @@ function [a, weights, c_a, c_ca, af] = appearance(k, targs_percam, cands_percam,
                     % Convert candidate locations in the image to patch locations
                     resp_cx = k_cx - crop_rect(1) + bb_width/2;
                     resp_cy = k_cy - crop_rect(2) + bb_height/2;
+                    if strcmp(features,'HOG')
+                        % Remember, we are using 4x4 pixel cells for HOG and 31 bins
+                        resp_cx = resp_cx/4;
+                        resp_cy = resp_cy/4;
+                    end
                     if resp_cx > 0 && resp_cy > 0 && resp_cx < size(responses,2) && resp_cy < size(responses,1)
                         % candidate_responses(gridy + floor(sqrt(k)/2) + 1, gridx + floor(sqrt(k)/2) + 1) = responses(cast(resp_cy, 'int32'), cast(resp_cx, 'int32'));
                         candidate_responses(t) = responses(cast(resp_cy, 'int32'), cast(resp_cx, 'int32'));

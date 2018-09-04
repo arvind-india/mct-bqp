@@ -1,6 +1,6 @@
 # Multi-camera tracker with Binary Quadratic Programming
 
-Formulates tracking as a *BQP (Binary Quadratic Programming)* problem, solved with *Frank-Wolfe* optimization. Uses *KCF* filters, *motion vector* gaussians and clustering (*K-Means*) for group dynamics (quadratic cues).
+Formulates multi-camera tracking as a *BQP (Binary Quadratic Programming)* problem, solved with *Frank-Wolfe* optimization. Uses *KCF* filters, *motion vector* gaussian pdfs and clustering (*hierarchical Clustering*) for group dynamics (quadratic cues).
 Working on Ubuntu 16.04, 16GB of RAM, CUDA 8.0 and GTX 1080 Ti 11 Gb.
 
 ### Prerequisites:

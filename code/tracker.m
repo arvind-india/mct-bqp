@@ -76,13 +76,15 @@ lambda = [20 10]; % variable for the appearance cues
 a_sigma = [60 70];
 prefilter_sigma = 2;
 num_frames = 7;
-detection_frames = [1 3];
-stop_frame = 2; % DEBUG Frame to stop at
+detection_frames = [1 5];
+stop_frame = 3; % DEBUG Frame to stop at
 homo_correction = false; % NOTE Set to false if not homography_correction
 resampling = false;
+features = 'RGB'; % Features for appearance
 clustering = 'single'; % NOTE Type of hierarchical clustering
 cluster_update_freq = 4; % NOTE Every cluster_update_freq frames update clusters
 people = [6 11]; % NOTE Only makes sense in UCLA
+display_candidates = true;
 
 gnd_detections = loadDetections(dataset, cameras); % Load the images (needed for the appearance cues)
 cameraListImages = loadImages(image_directories, durations, 0, length(cameras), dataset);
@@ -101,7 +103,8 @@ fprintf('Starting tracking loop:\n');
 targs_speed = {};
 weights = {};
 groups = {};
-prev_alphaf = -1;
+prev_alphaf = {};
+dendrograms = {};
 tracks = cell(length(cameras),1);
 for c = 1:length(cameras)
     tracks{c} = cell(max(people) + 1,1); % NOTE +1 cuz of matlab *sigh*
@@ -120,8 +123,10 @@ for f = 1:(num_frames - 1)
     %---------------------------------------------------------------------------
     fprintf('\t 2.Getting targets from frames in detection frames ');
     tic
-    [targs, targs_percam] = getTargets(f, detection_frames, gnd_detections, length(cameras), start_frames);
-    [targs, targs_percam] = getDebugTargets(targs, targs_percam, people);
+    if ismember(f,detection_frames)
+        [targs, targs_percam] = getTargets(f, gnd_detections, length(cameras), start_frames);
+        [targs, targs_percam] = getDebugTargets(targs, targs_percam, people);
+    end
     % TODO This is hardcoded for 2 cameras, fix this
     n1 = size(targs_percam{1},1); n2 = size(targs_percam{2},1);
     N = n1 + n2;
@@ -146,7 +151,7 @@ for f = 1:(num_frames - 1)
     %---------------------------------------------------------------------------
     fprintf('\t 6.Computing appearance cues (KCF) ');
     tic
-    [a, weights, c_a, c_ca, alphaf] = appearance(k, targs_percam, cands_percam, cands_clones, images, next_images, a_sigma, prefilter_sigma, lambda, weights, length(cameras), filter, dx, dy, dataset, prev_alphaf);
+    [a, weights, c_a, c_ca, alphaf] = appearance(k, targs_percam, cands_percam, cands_clones, images, next_images, a_sigma, prefilter_sigma, lambda, weights, length(cameras), filter, dx, dy, dataset, prev_alphaf, features);
     prev_alphaf = alphaf;
     tval = toc; fprintf(['(' num2str(tval) ' s) \n']);
     %---------------------------------------------------------------------------
@@ -160,15 +165,44 @@ for f = 1:(num_frames - 1)
     tic
     b = bounds(k, n1, cands_percam, cands_clones, ground_plane_regions, reward_val, length(cameras));
     tval = toc; fprintf(['(' num2str(tval) ' s) \n']);
-
     %---------------------------------------------------------------------------
     if resampling == true
+        resample_max = 3;
+
         fprintf('\t Re-sampling candidates.\n');
+        [cands, cands_percam] = resampling(cands_percam, a, m, b);
+        % NOTE store the ones that are ambiguous for homography correction in targs_in_overlap (i.e gating part 1)
+        fprintf('\t 4.Checking for targets in the overlapping regions ')
+        tic
+        [targs_in_overlap, n_o, N_o] = getTargetsOverlap(targs, overlap, cameras);
+        tval = toc; fprintf(['(' num2str(tval) ' s) \n']);
+        %---------------------------------------------------------------------------
+        fprintf('\t 5.Getting clone targets ')
+        tic
+        cands_clones = getClones(N,length(cameras), k, targs_percam, overlap);
+        tval = toc; fprintf(['(' num2str(tval) ' s) \n']);
+        %---------------------------------------------------------------------------
+        fprintf('\t 6.Computing appearance cues (KCF) ');
+        tic
+        [a, weights, c_a, c_ca, alphaf] = appearance(k, targs_percam, cands_percam, cands_clones, images, next_images, a_sigma, prefilter_sigma, lambda, weights, length(cameras), filter, dx, dy, dataset, prev_alphaf);
+        prev_alphaf = alphaf;
+        tval = toc; fprintf(['(' num2str(tval) ' s) \n']);
+        %---------------------------------------------------------------------------
+        fprintf('\t 7.Computing motion cues '); % NOTE Initializing of motion models is done here too
+        tic
+        [m, targs_speed] = motion(k, targs_speed, targs_percam, cands_percam, gnd_detections, m_sigma, f, cands_clones, start_frames, length(cameras), dt, detection_frames);
+        correct_targs_speed = targs_speed;
+        tval = toc; fprintf(['(' num2str(tval) ' s) \n']);
+        %---------------------------------------------------------------------------
+        fprintf('\t 8.Computing bounding cues ');
+        tic
+        b = bounds(k, n1, cands_percam, cands_clones, ground_plane_regions, reward_val, length(cameras));
+        tval = toc; fprintf(['(' num2str(tval) ' s) \n']);
     end
     %---------------------------------------------------------------------------
     fprintf('\t 9.Computing grouping cues (for temporal association only) '); % NOTE Initializing of motion models is done here too
     tic
-    [G, groups, dendrograms] = grouping(N, [n1, n2], k, groups, targs_percam, cands_percam, f, G_sigma, length(cameras), comfort_distance, dataset, cluster_update_freq, clustering, Gamma);
+    [G, groups, dendrograms] = grouping(N, [n1, n2], k, groups, targs_percam, cands_percam, f, G_sigma, length(cameras), comfort_distance, dataset, cluster_update_freq, clustering, Gamma, dendrograms);
     G = zeros(size(G,1), size(G,2));
     tval = toc; fprintf(['(' num2str(tval) ' s) \n']);
 
@@ -205,12 +239,13 @@ for f = 1:(num_frames - 1)
 
     %---------------------------------------------------------------------------
     % DEBUG Plot data and cues
-    plotData(targs_percam, cands_percam, best_temporal_candidates, best_spatial_candidates, next_images, images, length(cameras), dataset, false, ground_plane_regions); % Plots targets and candidates (camera and ground plane)
+    plotData(targs_percam, cands_percam, best_temporal_candidates, best_spatial_candidates, next_images, images, length(cameras), dataset, display_candidates, ground_plane_regions); % Plots targets and candidates (camera and ground plane)
     plotCues(a, m, b, dendrograms, next_images, cands_percam, k, length(cameras), comfort_distance); % Plots appearance, motion, bounds and grouping (dendrograms) data
 
     %---------------------------------------------------------------------------
     % NOTE update motion models using old targets and the chosen candidates
-    [targs_speed, tracks] = update(targs_speed, targs_percam, tracks, best_temporal_candidates, length(cameras), dt, dataset);
+    [targs_percam, targs_speed, tracks] = update(targs_speed, targs_percam, tracks, best_temporal_candidates, length(cameras), dt, dataset);
+    targs = cell2mat(targs_percam);
 end
 
 %---------------------------------------------------------------------------
